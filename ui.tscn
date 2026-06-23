@@ -1,0 +1,46 @@
+[gd_scene load_steps=2 format=3 uid="uid://ui_uid"]
+
+[ext_resource type="Script" path="res://ui.gd" id="1_scr"]
+
+[node name="UI" type="CanvasLayer"]
+script = ExtResource("1_scr")
+
+[node name="Panel" type="Panel" parent="."]
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 220.0
+offset_bottom = 100.0
+
+[node name="MoneyLabel" type="Label" parent="Panel"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 90.0
+offset_bottom = 33.0
+text = "Tiền: 500k"
+
+[node name="InvLabel" type="Label" parent="Panel"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 40.0
+offset_right = 90.0
+offset_bottom = 63.0
+text = "Kho: Trống"
+
+[node name="MsgPanel" type="Panel" parent="."]
+visible = false
+offset_left = 376.0
+offset_top = 500.0
+offset_right = 776.0
+offset_bottom = 600.0
+
+[node name="MsgLabel" type="Label" parent="MsgPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "Nhấn E để mua"
+horizontal_alignment = 1
+vertical_alignment = 1

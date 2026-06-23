@@ -1,0 +1,110 @@
+[gd_scene load_steps=15 format=3 uid="uid://main_uid"]
+
+[ext_resource type="Script" path="res://main.gd" id="1_scr"]
+[ext_resource type="PackedScene" uid="uid://player_uid" path="res://player.tscn" id="2_player"]
+[ext_resource type="PackedScene" uid="uid://merchant_uid" path="res://merchant.tscn" id="3_merchant"]
+[ext_resource type="PackedScene" uid="uid://ui_uid" path="res://ui.tscn" id="4_ui"]
+[ext_resource type="Texture2D" path="res://concept_map_1152.png" id="5_map1"]
+[ext_resource type="Texture2D" path="res://concept_map_2_1152.png" id="6_map2"]
+[ext_resource type="Texture2D" path="res://concept_map_3_1152.png" id="7_map3"]
+[ext_resource type="Shader" path="res://image_water.gdshader" id="8_shader"]
+
+[sub_resource type="Environment" id="Environment_1"]
+background_mode = 3
+glow_enabled = true
+glow_intensity = 1.2
+glow_strength = 1.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_map1"]
+shader = ExtResource("8_shader")
+shader_parameter/water_level = 0.45
+shader_parameter/ripple_speed = 2.0
+shader_parameter/ripple_strength = 0.015
+shader_parameter/fade_top = 0.0
+shader_parameter/fade_bottom = 0.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_map2"]
+shader = ExtResource("8_shader")
+shader_parameter/water_level = 0.45
+shader_parameter/ripple_speed = 2.0
+shader_parameter/ripple_strength = 0.015
+shader_parameter/fade_top = 0.0
+shader_parameter/fade_bottom = 0.2
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_map3"]
+shader = ExtResource("8_shader")
+shader_parameter/water_level = 0.45
+shader_parameter/ripple_speed = 2.0
+shader_parameter/ripple_strength = 0.015
+shader_parameter/fade_top = 0.2
+shader_parameter/fade_bottom = 0.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_lr"]
+size = Vector2(250, 3456)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_tb"]
+size = Vector2(1152, 200)
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1_scr")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_1")
+
+[node name="MapMiddle" type="Sprite2D" parent="."]
+z_index = -10
+position = Vector2(576, 576)
+texture = ExtResource("5_map1")
+material = SubResource("ShaderMaterial_map1")
+
+[node name="MapTop" type="Sprite2D" parent="."]
+z_index = -9
+position = Vector2(576, -576)
+texture = ExtResource("6_map2")
+material = SubResource("ShaderMaterial_map2")
+
+[node name="MapBottom" type="Sprite2D" parent="."]
+z_index = -9
+position = Vector2(576, 1728)
+texture = ExtResource("7_map3")
+material = SubResource("ShaderMaterial_map3")
+
+[node name="StaticBody2D" type="StaticBody2D" parent="."]
+
+[node name="WallLeft" type="CollisionShape2D" parent="StaticBody2D"]
+position = Vector2(125, 576)
+shape = SubResource("RectangleShape2D_wall_lr")
+
+[node name="WallRight" type="CollisionShape2D" parent="StaticBody2D"]
+position = Vector2(1027, 576)
+shape = SubResource("RectangleShape2D_wall_lr")
+
+[node name="WallTop" type="CollisionShape2D" parent="StaticBody2D"]
+position = Vector2(576, -1000)
+shape = SubResource("RectangleShape2D_wall_tb")
+
+[node name="WallBottom" type="CollisionShape2D" parent="StaticBody2D"]
+position = Vector2(576, 2200)
+shape = SubResource("RectangleShape2D_wall_tb")
+
+[node name="Merchant" parent="." instance=ExtResource("3_merchant")]
+position = Vector2(300, 700)
+scale = Vector2(0.6, 0.6)
+
+[node name="Merchant2" parent="." instance=ExtResource("3_merchant")]
+position = Vector2(800, 900)
+scale = Vector2(0.6, 0.6)
+
+[node name="Merchant3" parent="." instance=ExtResource("3_merchant")]
+position = Vector2(400, -200)
+scale = Vector2(0.6, 0.6)
+
+[node name="Merchant4" parent="." instance=ExtResource("3_merchant")]
+position = Vector2(700, 1500)
+scale = Vector2(0.6, 0.6)
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+position = Vector2(576, 800)
+scale = Vector2(0.6, 0.6)
+
+[node name="UI" parent="." instance=ExtResource("4_ui")]

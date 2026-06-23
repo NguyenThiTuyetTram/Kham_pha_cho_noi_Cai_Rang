@@ -1,0 +1,21 @@
+[gd_scene load_steps=5 format=3 uid="uid://merchant_uid"]
+
+[ext_resource type="Script" path="res://merchant.gd" id="1_scr"]
+[ext_resource type="Texture2D" path="res://fruit_boat_ai_clean.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://icon_fruit.png" id="3_icon"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1"]
+size = Vector2(250, 250)
+
+[node name="Merchant" type="Area2D" groups=["Merchant"]]
+script = ExtResource("1_scr")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("2_tex")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_1")
+
+[node name="Icon" type="Sprite2D" parent="."]
+position = Vector2(0, -140)
+texture = ExtResource("3_icon")
