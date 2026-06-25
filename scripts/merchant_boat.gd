@@ -7,9 +7,12 @@ extends Area2D
 
 var player_near := false
 var name_label: Label
+@onready var sprite: Sprite2D = $Sprite2D
 @onready var fruit_icon: Sprite2D = $FruitIcon
+var bob_phase := 0.0
 
 func _ready() -> void:
+	add_to_group("merchant_boat")
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
 	fruit_icon.modulate = Color(1, 1, 1, 0.0)
@@ -18,15 +21,21 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	z_index = int(global_position.y / 10.0)
+	bob_phase += delta * 1.7
+	sprite.position.y = sin(bob_phase) * 3.0
+	sprite.rotation = sin(bob_phase * 0.72) * 0.025
+	sprite.scale = Vector2.ONE * (1.0 + sin(bob_phase * 1.3) * 0.012)
 	var target_alpha := 1.0 if player_near and stock > 0 else 0.0
 	fruit_icon.modulate.a = move_toward(fruit_icon.modulate.a, target_alpha, delta * 5.0)
 	if player_near:
 		fruit_icon.scale = Vector2.ONE * (0.92 + sin(Time.get_ticks_msec() / 170.0) * 0.06)
 	_update_nameplate()
+	queue_redraw()
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if player_near and event.is_action_pressed("interact"):
+	if player_near and event.is_action_pressed("interact") and get_tree().current_scene.is_nearest_interactable(self):
 		get_tree().current_scene.buy_from_merchant(self)
 		_update_prompt()
 		get_viewport().set_input_as_handled()
@@ -37,6 +46,12 @@ func purchase_feedback() -> void:
 	tween.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.tween_property(self, "scale", Vector2(1.08, 1.08), 0.12)
 	tween.tween_property(self, "scale", Vector2.ONE, 0.18)
+
+
+func reset_interaction_state() -> void:
+	player_near = false
+	if fruit_icon != null:
+		fruit_icon.modulate.a = 0.0
 
 
 func _update_prompt() -> void:
@@ -66,6 +81,21 @@ func _update_nameplate() -> void:
 	if name_label == null:
 		return
 	name_label.text = "%s\n%s - %dk" % [merchant_name, product_name, price]
+	name_label.modulate.a = 1.0 if player_near else 0.78
+
+
+func _draw() -> void:
+	_draw_ellipse(Vector2(0, 28), Vector2(92, 34), Color(0.0, 0.0, 0.0, 0.24))
+	if player_near:
+		_draw_ellipse(Vector2(0, 20), Vector2(102, 39), Color(1.0, 0.76, 0.30, 0.055))
+
+
+func _draw_ellipse(center: Vector2, radius: Vector2, color: Color) -> void:
+	var points := PackedVector2Array()
+	for i in range(36):
+		var angle: float = TAU * float(i) / 36.0
+		points.append(center + Vector2(cos(angle) * radius.x, sin(angle) * radius.y))
+	draw_colored_polygon(points, color)
 
 
 func _on_body_entered(body: Node2D) -> void:

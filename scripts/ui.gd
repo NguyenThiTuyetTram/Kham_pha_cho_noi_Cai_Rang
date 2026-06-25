@@ -82,23 +82,23 @@ func show_dialogue(speaker: String, text: String) -> void:
 
 func _build_hud() -> void:
 	var stats_panel := PanelContainer.new()
-	stats_panel.position = Vector2(24, 22)
-	stats_panel.size = Vector2(480, 246)
-	stats_panel.custom_minimum_size = Vector2(480, 246)
-	stats_panel.add_theme_stylebox_override("panel", _panel_style(Color(0.015, 0.025, 0.045, 0.78), Color(0.0, 0.85, 0.95, 0.75)))
+	stats_panel.position = Vector2(20, 18)
+	stats_panel.size = Vector2(430, 236)
+	stats_panel.custom_minimum_size = Vector2(430, 236)
+	stats_panel.add_theme_stylebox_override("panel", _panel_style(Color(0.015, 0.025, 0.045, 0.68), Color(0.0, 0.75, 0.84, 0.58)))
 	add_child(stats_panel)
 
 	var stats := VBoxContainer.new()
-	stats.add_theme_constant_override("separation", 7)
+	stats.add_theme_constant_override("separation", 4)
 	stats_panel.add_child(stats)
 
-	money_label = _hud_label(23, Color(1.0, 0.83, 0.43))
-	map_label = _hud_label(18, Color(0.62, 0.95, 1.0))
-	cargo_label = _hud_label(18, Color(0.82, 1.0, 0.96))
-	reputation_label = _hud_label(18, Color(1.0, 0.55, 0.9))
-	engine_label = _hud_label(18, Color(0.82, 0.92, 1.0))
-	mission_label = _hud_label(17, Color(1.0, 0.94, 0.8))
-	progress_label = _hud_label(17, Color(0.72, 1.0, 0.92))
+	money_label = _hud_label(21, Color(1.0, 0.83, 0.43))
+	map_label = _hud_label(16, Color(0.62, 0.95, 1.0))
+	cargo_label = _hud_label(16, Color(0.82, 1.0, 0.96))
+	reputation_label = _hud_label(16, Color(1.0, 0.55, 0.9))
+	engine_label = _hud_label(16, Color(0.82, 0.92, 1.0))
+	mission_label = _hud_label(15, Color(1.0, 0.94, 0.8))
+	progress_label = _hud_label(15, Color(0.72, 1.0, 0.92))
 	stats.add_child(money_label)
 	stats.add_child(map_label)
 	stats.add_child(cargo_label)
@@ -134,36 +134,36 @@ func _build_hud() -> void:
 
 	prompt_panel = PanelContainer.new()
 	prompt_panel.visible = false
-	prompt_panel.size = Vector2(560, 62)
-	prompt_panel.custom_minimum_size = Vector2(560, 62)
+	prompt_panel.size = Vector2(500, 56)
+	prompt_panel.custom_minimum_size = Vector2(500, 56)
 	prompt_panel.anchor_left = 0.5
 	prompt_panel.anchor_right = 0.5
 	prompt_panel.anchor_top = 1.0
 	prompt_panel.anchor_bottom = 1.0
-	prompt_panel.offset_left = -280
-	prompt_panel.offset_right = 280
-	prompt_panel.offset_top = -100
-	prompt_panel.offset_bottom = -38
+	prompt_panel.offset_left = -250
+	prompt_panel.offset_right = 250
+	prompt_panel.offset_top = -92
+	prompt_panel.offset_bottom = -36
 	prompt_panel.add_theme_stylebox_override("panel", _panel_style(Color(0.02, 0.015, 0.035, 0.84), Color(1.0, 0.28, 0.72, 0.82)))
 	add_child(prompt_panel)
 
-	prompt_label = _hud_label(23, Color(1.0, 0.93, 0.65))
+	prompt_label = _hud_label(20, Color(1.0, 0.93, 0.65))
 	prompt_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	prompt_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	prompt_panel.add_child(prompt_label)
 
 	dialogue_panel = PanelContainer.new()
 	dialogue_panel.visible = false
-	dialogue_panel.size = Vector2(720, 118)
-	dialogue_panel.custom_minimum_size = Vector2(720, 118)
+	dialogue_panel.size = Vector2(660, 108)
+	dialogue_panel.custom_minimum_size = Vector2(660, 108)
 	dialogue_panel.anchor_left = 0.5
 	dialogue_panel.anchor_right = 0.5
 	dialogue_panel.anchor_top = 1.0
 	dialogue_panel.anchor_bottom = 1.0
-	dialogue_panel.offset_left = -360
-	dialogue_panel.offset_right = 360
-	dialogue_panel.offset_top = -230
-	dialogue_panel.offset_bottom = -112
+	dialogue_panel.offset_left = -330
+	dialogue_panel.offset_right = 330
+	dialogue_panel.offset_top = -212
+	dialogue_panel.offset_bottom = -104
 	dialogue_panel.add_theme_stylebox_override("panel", _panel_style(Color(0.01, 0.018, 0.035, 0.9), Color(0.0, 0.9, 1.0, 0.88)))
 	add_child(dialogue_panel)
 
@@ -171,8 +171,8 @@ func _build_hud() -> void:
 	dialogue_box.add_theme_constant_override("separation", 5)
 	dialogue_panel.add_child(dialogue_box)
 
-	dialogue_speaker = _hud_label(19, Color(1.0, 0.78, 0.34))
-	dialogue_text = _hud_label(18, Color(0.9, 0.98, 1.0))
+	dialogue_speaker = _hud_label(17, Color(1.0, 0.78, 0.34))
+	dialogue_text = _hud_label(16, Color(0.9, 0.98, 1.0))
 	dialogue_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	dialogue_box.add_child(dialogue_speaker)
 	dialogue_box.add_child(dialogue_text)
@@ -198,10 +198,10 @@ func _panel_style(bg: Color, border: Color) -> StyleBoxFlat:
 	style.corner_radius_top_right = 8
 	style.corner_radius_bottom_left = 8
 	style.corner_radius_bottom_right = 8
-	style.content_margin_left = 18
-	style.content_margin_right = 18
-	style.content_margin_top = 14
-	style.content_margin_bottom = 14
-	style.shadow_color = Color(0.0, 0.85, 0.95, 0.18)
-	style.shadow_size = 12
+	style.content_margin_left = 14
+	style.content_margin_right = 14
+	style.content_margin_top = 11
+	style.content_margin_bottom = 11
+	style.shadow_color = Color(0.0, 0.65, 0.72, 0.12)
+	style.shadow_size = 8
 	return style

@@ -6,8 +6,10 @@ extends Area2D
 var player_near := false
 var name_label: Label
 @onready var marker: Sprite2D = $Sprite2D
+var shimmer_phase := 0.0
 
 func _ready() -> void:
+	add_to_group("scenic_spot")
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
 	marker.modulate = Color(0.35, 1.0, 1.0, 0.95)
@@ -15,13 +17,18 @@ func _ready() -> void:
 	_update_nameplate()
 
 
-func _process(_delta: float) -> void:
-	marker.scale = Vector2.ONE * (0.85 + sin(Time.get_ticks_msec() / 240.0) * 0.06)
+func _process(delta: float) -> void:
+	z_index = int(global_position.y / 10.0)
+	shimmer_phase += delta
+	var attention: float = 1.0 if player_near else 0.0
+	marker.scale = Vector2.ONE * (0.78 + attention * 0.09 + sin(shimmer_phase * 4.8) * 0.055)
+	marker.rotation = sin(shimmer_phase * 1.6) * 0.08
 	_update_nameplate()
+	queue_redraw()
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if player_near and event.is_action_pressed("interact"):
+	if player_near and event.is_action_pressed("interact") and get_tree().current_scene.is_nearest_interactable(self):
 		get_tree().current_scene.discover_spot(self)
 		get_viewport().set_input_as_handled()
 
@@ -30,6 +37,10 @@ func discovery_feedback() -> void:
 	var tween := create_tween()
 	tween.tween_property(marker, "modulate", Color(1.0, 0.85, 0.25, 1.0), 0.15)
 	tween.tween_property(marker, "modulate", Color(0.35, 1.0, 1.0, 0.95), 0.35)
+
+
+func reset_interaction_state() -> void:
+	player_near = false
 
 
 func _on_body_entered(body: Node2D) -> void:
@@ -62,3 +73,9 @@ func _update_nameplate() -> void:
 	if name_label == null:
 		return
 	name_label.text = "Check-in\n%s" % spot_name
+	name_label.modulate.a = 1.0 if player_near else 0.76
+
+
+func _draw() -> void:
+	if player_near:
+		draw_circle(Vector2.ZERO, 34.0, Color(0.42, 0.96, 1.0, 0.045))

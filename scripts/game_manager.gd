@@ -239,6 +239,26 @@ func hide_prompt() -> void:
 	ui.hide_prompt()
 
 
+func is_nearest_interactable(node: Node2D) -> bool:
+	if player == null or node == null or not node.visible:
+		return false
+	var groups: Array[String] = ["merchant_boat", "quest_hub", "delivery_point", "scenic_spot", "river_portal", "upgrade_dock"]
+	var best_node: Node2D = null
+	var best_distance: float = INF
+	for group in groups:
+		for candidate in get_tree().get_nodes_in_group(group):
+			if not candidate is Node2D:
+				continue
+			var area := candidate as Node2D
+			if not area.visible or not bool(area.get("player_near")):
+				continue
+			var distance: float = player.global_position.distance_squared_to(area.global_position)
+			if distance < best_distance:
+				best_distance = distance
+				best_node = area
+	return best_node == node
+
+
 func _advance_quest() -> void:
 	active_quest += 1
 	quest_accepted = false
@@ -332,7 +352,9 @@ func _apply_map(map_id: String, spawn_position: Vector2) -> void:
 	background.texture = load(str(map["background"]))
 	background.position = Vector2(960, 540) * WORLD_SCALE
 	background.scale = Vector2.ONE * WORLD_SCALE
-	player.global_position = _to_world(spawn_position)
+	player.river_bounds = _scale_rect(map.get("river_bounds", Rect2(Vector2(150, 115), Vector2(1620, 890))) as Rect2)
+	player.call("set_water_polygons", _scale_polygons(map.get("water_polygons", []) as Array))
+	player.call("reset_safe_position", _to_world(spawn_position))
 	player.velocity = Vector2.ZERO
 	player.external_force = Vector2.ZERO
 	hide_prompt()
@@ -344,6 +366,8 @@ func _apply_map(map_id: String, spawn_position: Vector2) -> void:
 	_apply_currents(map["currents"] as Array)
 	_apply_quest_boards(map["quest_boards"] as Array)
 	decoration_layer.call("set_decorations", map.get("decorations", []) as Array, WORLD_SCALE)
+	water_ripple_layer.call("configure_for_map", map.get("water_style", {}) as Dictionary)
+	water_ripple_layer.call("set_current_fields", map["currents"] as Array, WORLD_SCALE)
 	_apply_upgrade_dock(map.get("upgrade_dock", {}) as Dictionary)
 
 
@@ -368,6 +392,12 @@ func _apply_deliveries(configs: Array) -> void:
 		if i < configs.size():
 			var data: Dictionary = configs[i] as Dictionary
 			nodes[i].set("point_name", str(data["name"]))
+			nodes[i].call(
+				"setup_visuals",
+				(data.get("marker_offset", Vector2.ZERO) as Vector2) * WORLD_SCALE,
+				(data.get("npc_offset", Vector2(58, 24)) as Vector2) * WORLD_SCALE,
+				(data.get("label_offset", Vector2(-130, -105)) as Vector2) * WORLD_SCALE
+			)
 
 
 func _apply_spots(configs: Array) -> void:
@@ -404,7 +434,13 @@ func _apply_quest_boards(configs: Array) -> void:
 	for i in range(nodes.size()):
 		if i < configs.size():
 			var data: Dictionary = configs[i] as Dictionary
-			nodes[i].call("setup", str(data["id"]), str(data["name"]), str(data.get("role", "Nhận hợp đồng")))
+			var visuals: Dictionary = {
+				"marker_offset": (data.get("marker_offset", Vector2(76, -72)) as Vector2) * WORLD_SCALE,
+				"npc_offset": (data.get("npc_offset", Vector2(-58, -38)) as Vector2) * WORLD_SCALE,
+				"boat_offset": (data.get("boat_offset", Vector2.ZERO) as Vector2) * WORLD_SCALE,
+				"label_offset": (data.get("label_offset", Vector2(-170, -170)) as Vector2) * WORLD_SCALE
+			}
+			nodes[i].call("setup", str(data["id"]), str(data["name"]), str(data.get("role", "Nhận hợp đồng")), visuals)
 
 
 func _apply_upgrade_dock(config: Dictionary) -> void:
@@ -420,6 +456,8 @@ func _apply_upgrade_dock(config: Dictionary) -> void:
 func _apply_area_list(nodes: Array, configs: Array) -> void:
 	for i in range(nodes.size()):
 		var node: Area2D = nodes[i] as Area2D
+		if node.has_method("reset_interaction_state"):
+			node.call("reset_interaction_state")
 		var enabled: bool = i < configs.size()
 		node.visible = enabled
 		node.monitoring = enabled
@@ -432,6 +470,20 @@ func _apply_area_list(nodes: Array, configs: Array) -> void:
 
 func _to_world(pos: Vector2) -> Vector2:
 	return pos * WORLD_SCALE
+
+
+func _scale_rect(rect: Rect2) -> Rect2:
+	return Rect2(rect.position * WORLD_SCALE, rect.size * WORLD_SCALE)
+
+
+func _scale_polygons(polygons: Array) -> Array[PackedVector2Array]:
+	var scaled: Array[PackedVector2Array] = []
+	for polygon_data in polygons:
+		var polygon := PackedVector2Array()
+		for point in polygon_data:
+			polygon.append((point as Vector2) * WORLD_SCALE)
+		scaled.append(polygon)
+	return scaled
 
 
 func _map_tip() -> String:
@@ -448,8 +500,22 @@ func _build_maps() -> void:
 		"cai_rang": {
 			"name": "Chợ Nổi Cái Răng",
 			"background": "res://assets/river_market_background.png",
+			"river_bounds": Rect2(Vector2(120, 135), Vector2(1490, 830)),
+			"water_polygons": [
+				PackedVector2Array([
+					Vector2(120, 135),
+					Vector2(1005, 135),
+					Vector2(955, 235),
+					Vector2(1168, 320),
+					Vector2(1290, 340),
+					Vector2(1465, 500),
+					Vector2(1610, 660),
+					Vector2(1610, 965),
+					Vector2(120, 965)
+				])
+			],
 			"quest_boards": [
-				{"pos": Vector2(260, 765), "id": "cai_rang_dispatch", "name": "Trạm Điều Phối Ánh Đèn", "role": "Hợp đồng mở chợ"}
+				{"pos": Vector2(300, 735), "id": "cai_rang_dispatch", "name": "Trạm Điều Phối Ánh Đèn", "role": "Hợp đồng mở chợ", "boat_offset": Vector2(-18, 10), "npc_offset": Vector2(-82, -52), "marker_offset": Vector2(70, -86), "label_offset": Vector2(-170, -174)}
 			],
 			"decorations": [
 				{"kind": "lantern", "pos": Vector2(318, 610), "phase": 0.2},
@@ -458,14 +524,14 @@ func _build_maps() -> void:
 			],
 			"merchants": [
 				{"pos": Vector2(435, 330), "rot": -0.32, "name": "Cô Sáu", "product": "Trái cây", "price": 50, "stock": 10},
-				{"pos": Vector2(1510, 430), "rot": 0.26, "name": "Chú Bảy Dừa", "product": "Nước dừa", "price": 70, "stock": 7},
+				{"pos": Vector2(1395, 460), "rot": 0.20, "name": "Chú Bảy Dừa", "product": "Nước dừa", "price": 70, "stock": 7},
 				{"pos": Vector2(510, 800), "rot": 0.18, "name": "Dì Tư Bánh", "product": "Bánh dân gian", "price": 90, "stock": 5},
-				{"pos": Vector2(1320, 220), "rot": -0.18, "name": "Anh Hai Miệt Vườn", "product": "Trái cây", "price": 55, "stock": 8}
+				{"pos": Vector2(1110, 330), "rot": -0.18, "name": "Anh Hai Miệt Vườn", "product": "Trái cây", "price": 55, "stock": 8}
 			],
 			"deliveries": [
 				{"pos": Vector2(1510, 805), "name": "Tiệm Ánh Đèn"},
 				{"pos": Vector2(350, 170), "name": "Bến Du Lịch"},
-				{"pos": Vector2(1600, 210), "name": "Sân Khấu Nổi"}
+				{"pos": Vector2(1260, 560), "name": "Sân Khấu Nổi", "marker_offset": Vector2(250, -278), "npc_offset": Vector2(302, -294), "label_offset": Vector2(220, -378)}
 			],
 			"spots": [
 				{"pos": Vector2(955, 160), "id": "cai_rang_bridge", "name": "Cầu Đèn Lồng"},
@@ -473,13 +539,22 @@ func _build_maps() -> void:
 			],
 			"portals": [
 				{"pos": Vector2(960, 965), "target": "ninh_kieu", "spawn": Vector2(960, 185), "label": "Bến Ninh Kiều"},
-				{"pos": Vector2(1750, 545), "target": "orchard", "spawn": Vector2(240, 535), "label": "Kênh Vườn Trái Cây"}
+				{"pos": Vector2(1550, 690), "target": "orchard", "spawn": Vector2(240, 535), "label": "Kênh Vườn Trái Cây"}
 			],
 			"currents": [
 				{"pos": Vector2(940, 520), "force": Vector2(44, -12)},
 				{"pos": Vector2(800, 810), "rot": 0.3, "force": Vector2(-34, -4)}
 			],
-			"upgrade_dock": {"pos": Vector2(1660, 620)}
+			"water_style": {
+				"flow": Vector2(1.0, -0.18),
+				"speed": 1.0,
+				"chop": 1.05,
+				"density": 1.05,
+				"water_tint": Color(0.42, 0.66, 0.70, 0.18),
+				"foam_tint": Color(0.78, 0.88, 0.84, 0.22),
+				"shadow_tint": Color(0.04, 0.18, 0.17, 0.18)
+			},
+			"upgrade_dock": {"pos": Vector2(1535, 655)}
 		},
 		"ninh_kieu": {
 			"name": "Bến Ninh Kiều",

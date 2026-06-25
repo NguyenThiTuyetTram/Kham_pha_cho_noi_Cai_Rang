@@ -5,22 +5,37 @@ extends Area2D
 var player_near := false
 var name_label: Label
 @onready var marker: Sprite2D = $Sprite2D
+@onready var npc: Sprite2D = $NPC
+var bob_phase := 0.0
+var marker_base_position := Vector2.ZERO
+var npc_base_position := Vector2(58, 24)
+var nameplate_base_position := Vector2(-130, -105)
 
 func _ready() -> void:
+	add_to_group("delivery_point")
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
+	marker_base_position = marker.position
+	npc_base_position = npc.position
 	_create_nameplate()
 	_update_nameplate()
 
 
-func _process(_delta: float) -> void:
-	marker.rotation = sin(Time.get_ticks_msec() / 500.0) * 0.05
-	marker.scale = Vector2.ONE * (1.0 + sin(Time.get_ticks_msec() / 220.0) * 0.04)
+func _process(delta: float) -> void:
+	z_index = int(global_position.y / 10.0)
+	bob_phase += delta
+	var attention: float = 1.0 if player_near else 0.0
+	marker.position = marker_base_position + Vector2(0.0, sin(bob_phase * 2.4) * 2.0)
+	marker.rotation = sin(bob_phase * 2.0) * 0.06
+	marker.scale = Vector2.ONE * (0.92 + attention * 0.08 + sin(bob_phase * 4.5) * 0.04)
+	npc.position = npc_base_position + Vector2(0.0, sin(bob_phase * 1.55) * 2.2)
+	npc.rotation = sin(bob_phase * 1.1) * 0.016
 	_update_nameplate()
+	queue_redraw()
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if player_near and event.is_action_pressed("interact"):
+	if player_near and event.is_action_pressed("interact") and get_tree().current_scene.is_nearest_interactable(self):
 		get_tree().current_scene.complete_delivery(self)
 		_update_prompt()
 		get_viewport().set_input_as_handled()
@@ -30,6 +45,22 @@ func delivery_feedback() -> void:
 	var tween := create_tween()
 	tween.tween_property(marker, "modulate", Color(1.0, 0.92, 0.35, 1.0), 0.12)
 	tween.tween_property(marker, "modulate", Color.WHITE, 0.35)
+
+
+func setup_visuals(marker_offset: Vector2, npc_offset: Vector2, label_offset: Vector2) -> void:
+	marker_base_position = marker_offset
+	npc_base_position = npc_offset
+	nameplate_base_position = label_offset
+	if marker != null:
+		marker.position = marker_base_position
+	if npc != null:
+		npc.position = npc_base_position
+	if name_label != null:
+		name_label.position = nameplate_base_position
+
+
+func reset_interaction_state() -> void:
+	player_near = false
 
 
 func _update_prompt() -> void:
@@ -46,7 +77,7 @@ func _update_prompt() -> void:
 
 func _create_nameplate() -> void:
 	name_label = Label.new()
-	name_label.position = Vector2(-130, -105)
+	name_label.position = nameplate_base_position
 	name_label.size = Vector2(260, 46)
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -62,6 +93,20 @@ func _update_nameplate() -> void:
 	if name_label == null:
 		return
 	name_label.text = "Điểm giao\n%s" % point_name
+
+
+func _draw() -> void:
+	_draw_ellipse(Vector2(18, 34), Vector2(82, 28), Color(0.0, 0.0, 0.0, 0.22))
+	if player_near:
+		_draw_ellipse(Vector2(10, 24), Vector2(92, 32), Color(0.54, 1.0, 0.86, 0.055))
+
+
+func _draw_ellipse(center: Vector2, radius: Vector2, color: Color) -> void:
+	var points := PackedVector2Array()
+	for i in range(34):
+		var angle: float = TAU * float(i) / 34.0
+		points.append(center + Vector2(cos(angle) * radius.x, sin(angle) * radius.y))
+	draw_colored_polygon(points, color)
 
 
 func _on_body_entered(body: Node2D) -> void:

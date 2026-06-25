@@ -7,8 +7,10 @@ extends Area2D
 var player_near := false
 var name_label: Label
 @onready var marker: Sprite2D = $Sprite2D
+var flow_phase := 0.0
 
 func _ready() -> void:
+	add_to_group("river_portal")
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
 	marker.modulate = Color(0.42, 0.92, 1.0, 0.95)
@@ -16,12 +18,17 @@ func _ready() -> void:
 	_update_nameplate()
 
 
-func _process(_delta: float) -> void:
-	marker.scale = Vector2.ONE * (0.92 + sin(Time.get_ticks_msec() / 260.0) * 0.05)
+func _process(delta: float) -> void:
+	z_index = int(global_position.y / 10.0)
+	flow_phase += delta
+	var attention: float = 1.0 if player_near else 0.0
+	marker.scale = Vector2.ONE * (0.84 + attention * 0.10 + sin(flow_phase * 4.0) * 0.045)
+	marker.rotation = sin(flow_phase * 1.9) * 0.09
+	queue_redraw()
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if player_near and event.is_action_pressed("interact"):
+	if player_near and event.is_action_pressed("interact") and get_tree().current_scene.is_nearest_interactable(self):
 		get_tree().current_scene.change_map(target_map_id, target_spawn)
 		get_viewport().set_input_as_handled()
 
@@ -31,6 +38,10 @@ func setup(next_map: String, spawn: Vector2, label: String) -> void:
 	target_spawn = spawn
 	portal_name = label
 	_update_nameplate()
+
+
+func reset_interaction_state() -> void:
+	player_near = false
 
 
 func _create_nameplate() -> void:
@@ -51,6 +62,11 @@ func _update_nameplate() -> void:
 	if name_label == null:
 		return
 	name_label.text = "Lối sông\n%s" % portal_name
+
+
+func _draw() -> void:
+	if player_near:
+		draw_circle(Vector2.ZERO, 42.0, Color(0.48, 0.92, 1.0, 0.05))
 
 
 func _on_body_entered(body: Node2D) -> void:
