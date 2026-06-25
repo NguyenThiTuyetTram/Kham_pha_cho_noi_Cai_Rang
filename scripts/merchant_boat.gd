@@ -54,6 +54,14 @@ func reset_interaction_state() -> void:
 		fruit_icon.modulate.a = 0.0
 
 
+func get_blocking_center() -> Vector2:
+	return global_position
+
+
+func get_blocking_radius() -> float:
+	return 118.0
+
+
 func _update_prompt() -> void:
 	if not player_near:
 		return

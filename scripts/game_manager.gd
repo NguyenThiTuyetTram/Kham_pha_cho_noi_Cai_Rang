@@ -500,18 +500,26 @@ func _build_maps() -> void:
 		"cai_rang": {
 			"name": "Chợ Nổi Cái Răng",
 			"background": "res://assets/river_market_background.png",
-			"river_bounds": Rect2(Vector2(120, 135), Vector2(1490, 830)),
+			"river_bounds": Rect2(Vector2(0, 115), Vector2(1610, 875)),
 			"water_polygons": [
 				PackedVector2Array([
-					Vector2(120, 135),
-					Vector2(1005, 135),
-					Vector2(955, 235),
-					Vector2(1168, 320),
-					Vector2(1290, 340),
-					Vector2(1465, 500),
-					Vector2(1610, 660),
-					Vector2(1610, 965),
-					Vector2(120, 965)
+					Vector2(0, 990),
+					Vector2(0, 830),
+					Vector2(70, 760),
+					Vector2(115, 700),
+					Vector2(190, 660),
+					Vector2(95, 620),
+					Vector2(165, 570),
+					Vector2(120, 520),
+					Vector2(185, 470),
+					Vector2(180, 420),
+					Vector2(260, 360),
+					Vector2(330, 300),
+					Vector2(390, 240),
+					Vector2(430, 160),
+					Vector2(470, 120),
+					Vector2(1610, 120),
+					Vector2(1610, 990)
 				])
 			],
 			"quest_boards": [
@@ -523,7 +531,7 @@ func _build_maps() -> void:
 				{"kind": "sign", "pos": Vector2(1490, 275), "label": "CÁI RĂNG"}
 			],
 			"merchants": [
-				{"pos": Vector2(435, 330), "rot": -0.32, "name": "Cô Sáu", "product": "Trái cây", "price": 50, "stock": 10},
+				{"pos": Vector2(700, 455), "rot": -0.32, "name": "Cô Sáu", "product": "Trái cây", "price": 50, "stock": 10},
 				{"pos": Vector2(1395, 460), "rot": 0.20, "name": "Chú Bảy Dừa", "product": "Nước dừa", "price": 70, "stock": 7},
 				{"pos": Vector2(510, 800), "rot": 0.18, "name": "Dì Tư Bánh", "product": "Bánh dân gian", "price": 90, "stock": 5},
 				{"pos": Vector2(1110, 330), "rot": -0.18, "name": "Anh Hai Miệt Vườn", "product": "Trái cây", "price": 55, "stock": 8}

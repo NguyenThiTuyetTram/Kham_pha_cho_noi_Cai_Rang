@@ -38,6 +38,7 @@ func _physics_process(delta: float) -> void:
 	global_position.x = clamp(global_position.x, river_bounds.position.x, river_bounds.end.x)
 	global_position.y = clamp(global_position.y, river_bounds.position.y, river_bounds.end.y)
 	_enforce_water_polygons()
+	_resolve_dynamic_obstacles()
 
 	var speed_ratio: float = clamp(velocity.length() / max_speed, 0.0, 1.0)
 	wake_strength = move_toward(wake_strength, speed_ratio, delta * 3.2)
@@ -136,6 +137,32 @@ func _is_point_inside_water(point: Vector2) -> bool:
 		if Geometry2D.is_point_in_polygon(point, polygon):
 			return true
 	return false
+
+
+func _resolve_dynamic_obstacles() -> void:
+	var obstacle_groups: Array[String] = ["merchant_boat", "quest_hub"]
+	for group in obstacle_groups:
+		for obstacle in get_tree().get_nodes_in_group(group):
+			if not obstacle is Node2D or not (obstacle as Node2D).visible:
+				continue
+			var center: Vector2 = (obstacle as Node2D).global_position
+			if obstacle.has_method("get_blocking_center"):
+				center = obstacle.call("get_blocking_center") as Vector2
+			var radius: float = 112.0
+			if obstacle.has_method("get_blocking_radius"):
+				radius = float(obstacle.call("get_blocking_radius"))
+			var delta: Vector2 = global_position - center
+			var distance: float = delta.length()
+			if distance <= 0.001 or distance >= radius:
+				continue
+			var push_dir: Vector2 = delta / distance
+			var target_position: Vector2 = center + push_dir * radius
+			if _is_boat_inside_water(target_position):
+				global_position = target_position
+				last_safe_position = global_position
+				velocity = velocity.slide(push_dir)
+			else:
+				velocity *= 0.35
 
 
 func _update_visual_motion(delta: float, speed_ratio: float) -> void:

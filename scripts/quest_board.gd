@@ -80,6 +80,14 @@ func reset_interaction_state() -> void:
 	player_near = false
 
 
+func get_blocking_center() -> Vector2:
+	return to_global(boat_base_position)
+
+
+func get_blocking_radius() -> float:
+	return 105.0
+
+
 func accept_feedback() -> void:
 	var tween := create_tween()
 	tween.tween_property(marker, "modulate", Color(0.4, 1.0, 0.82, 1.0), 0.15)
