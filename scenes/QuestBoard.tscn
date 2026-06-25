@@ -1,0 +1,29 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/delivery_icon.png" id="1"]
+[ext_resource type="Script" path="res://scripts/quest_board.gd" id="2"]
+[ext_resource type="Texture2D" path="res://assets/quest_npc.png" id="3"]
+[ext_resource type="Texture2D" path="res://assets/merchant_boat.png" id="4"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_1"]
+radius = 125.0
+
+[node name="QuestBoard" type="Area2D"]
+script = ExtResource("2")
+
+[node name="QuestBoat" type="Sprite2D" parent="."]
+texture = ExtResource("4")
+scale = Vector2(0.78, 0.78)
+
+[node name="NPC" type="Sprite2D" parent="."]
+position = Vector2(-58, -38)
+texture = ExtResource("3")
+scale = Vector2(0.72, 0.72)
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(76, -72)
+texture = ExtResource("1")
+scale = Vector2(0.48, 0.48)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_1")
