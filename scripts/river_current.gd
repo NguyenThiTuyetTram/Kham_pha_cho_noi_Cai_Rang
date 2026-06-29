@@ -15,6 +15,8 @@ func _process(delta: float) -> void:
 
 
 func _physics_process(_delta: float) -> void:
+	if not monitoring:
+		return
 	for body in get_overlapping_bodies():
 		if body.is_in_group("player"):
 			body.external_force += current_force * 0.018

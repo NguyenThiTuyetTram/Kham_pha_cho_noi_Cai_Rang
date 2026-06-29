@@ -4,8 +4,8 @@
 [ext_resource type="Script" path="res://scripts/player_boat.gd" id="2"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_1"]
-radius = 30.0
-height = 145.0
+radius = 65.0
+height = 220.0
 
 [node name="PlayerBoat" type="CharacterBody2D"]
 script = ExtResource("2")

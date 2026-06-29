@@ -35,6 +35,8 @@ func _physics_process(delta: float) -> void:
 	velocity += external_force
 	external_force = external_force.move_toward(Vector2.ZERO, 240.0 * delta)
 	move_and_slide()
+	if get_slide_collision_count() > 0:
+		print("HIT A WALL: ", get_slide_collision(0).get_collider().name)
 	global_position.x = clamp(global_position.x, river_bounds.position.x, river_bounds.end.x)
 	global_position.y = clamp(global_position.y, river_bounds.position.y, river_bounds.end.y)
 	_enforce_water_polygons()

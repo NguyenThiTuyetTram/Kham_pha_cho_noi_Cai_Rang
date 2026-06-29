@@ -99,6 +99,7 @@ func _ready() -> void:
 	water_ripple_layer = $WaterRippleLayer
 	decoration_layer = $DecorationLayer
 	background.z_index = -20
+	
 	_build_maps()
 	_configure_world()
 	_apply_map("cai_rang", Vector2(960, 760))
@@ -113,7 +114,8 @@ func change_map(map_id: String, spawn_position: Vector2) -> void:
 	_apply_map(map_id, spawn_position)
 	_refresh_ui()
 	ui.show_map_banner(str(_current_map()["name"]), _map_tip())
-
+	
+	_apply_currents(_current_map().get("currents", []) as Array)
 
 func accept_quest(board: Area2D) -> void:
 	var quest: Dictionary = _active_quest()
@@ -369,6 +371,16 @@ func _apply_map(map_id: String, spawn_position: Vector2) -> void:
 	water_ripple_layer.call("configure_for_map", map.get("water_style", {}) as Dictionary)
 	water_ripple_layer.call("set_current_fields", map["currents"] as Array, WORLD_SCALE)
 	_apply_upgrade_dock(map.get("upgrade_dock", {}) as Dictionary)
+	
+	for child in get_children():
+		if child is StaticBody2D and child.name.begins_with("Shore_"):
+			child.scale = Vector2.ONE * WORLD_SCALE
+			child.collision_layer = 1
+			child.collision_mask = 1
+			var is_active = (child.name == "Shore_" + map_id)
+			for shape in child.get_children():
+				if shape is CollisionPolygon2D or shape is CollisionShape2D:
+					shape.disabled = !is_active
 
 
 func _apply_merchants(configs: Array) -> void:

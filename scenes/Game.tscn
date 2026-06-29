@@ -1,52 +1,48 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene format=3 uid="uid://doy6mou722duh"]
 
-[ext_resource type="Script" path="res://scripts/game_manager.gd" id="1"]
-[ext_resource type="Texture2D" path="res://assets/river_market_background.png" id="2"]
+[ext_resource type="Script" uid="uid://clhxh4x16ns7m" path="res://scripts/game_manager.gd" id="1"]
+[ext_resource type="Texture2D" uid="uid://da550jc83qpw3" path="res://assets/river_market_background.png" id="2"]
 [ext_resource type="PackedScene" path="res://scenes/PlayerBoat.tscn" id="3"]
 [ext_resource type="PackedScene" path="res://scenes/MerchantBoat.tscn" id="4"]
 [ext_resource type="PackedScene" path="res://scenes/DeliveryPoint.tscn" id="5"]
-[ext_resource type="Script" path="res://scripts/ui.gd" id="6"]
+[ext_resource type="Script" uid="uid://4uiaid8vlo0l" path="res://scripts/ui.gd" id="6"]
 [ext_resource type="PackedScene" path="res://scenes/ScenicSpot.tscn" id="7"]
 [ext_resource type="PackedScene" path="res://scenes/UpgradeDock.tscn" id="8"]
 [ext_resource type="PackedScene" path="res://scenes/RiverCurrent.tscn" id="9"]
 [ext_resource type="PackedScene" path="res://scenes/MapPortal.tscn" id="10"]
 [ext_resource type="PackedScene" path="res://scenes/QuestBoard.tscn" id="11"]
-[ext_resource type="Script" path="res://scripts/water_ripple_layer.gd" id="12"]
-[ext_resource type="Script" path="res://scripts/decoration_layer.gd" id="13"]
+[ext_resource type="Script" uid="uid://cn7kucq187ehy" path="res://scripts/water_ripple_layer.gd" id="12"]
+[ext_resource type="Script" uid="uid://0j6hlm8jegd4" path="res://scripts/decoration_layer.gd" id="13"]
 
-[node name="Game" type="Node2D"]
+[node name="Game" type="Node2D" unique_id=1458379717]
 script = ExtResource("1")
 
-[node name="RiverMarketBackground" type="Sprite2D" parent="."]
-position = Vector2(960, 540)
+[node name="RiverMarketBackground" type="Sprite2D" parent="." unique_id=168722896]
+position = Vector2(969, 546)
 texture = ExtResource("2")
 
-[node name="WaterRippleLayer" type="Node2D" parent="."]
+[node name="WaterRippleLayer" type="Node2D" parent="." unique_id=1552659174]
 script = ExtResource("12")
 
-[node name="DecorationLayer" type="Node2D" parent="."]
+[node name="DecorationLayer" type="Node2D" parent="." unique_id=1744042155]
 script = ExtResource("13")
 
-[node name="PlayerBoat" parent="." instance=ExtResource("3")]
+[node name="PlayerBoat" parent="." unique_id=1669889880 instance=ExtResource("3")]
 position = Vector2(960, 760)
 
-[node name="MerchantBoatLeft" parent="." instance=ExtResource("4")]
+[node name="MerchantBoatLeft" parent="." unique_id=2009890421 instance=ExtResource("4")]
 position = Vector2(435, 330)
 rotation = -0.32
-merchant_name = "Cô Sáu"
-product_name = "Trái cây"
-price = 50
 stock = 8
 
-[node name="MerchantBoatRight" parent="." instance=ExtResource("4")]
+[node name="MerchantBoatRight" parent="." unique_id=1723471312 instance=ExtResource("4")]
 position = Vector2(1510, 430)
 rotation = 0.26
 merchant_name = "Chú Bảy Dừa"
 product_name = "Nước dừa"
 price = 70
-stock = 6
 
-[node name="MerchantBoatBottom" parent="." instance=ExtResource("4")]
+[node name="MerchantBoatBottom" parent="." unique_id=500368126 instance=ExtResource("4")]
 position = Vector2(510, 800)
 rotation = 0.18
 merchant_name = "Dì Tư Bánh"
@@ -54,62 +50,67 @@ product_name = "Bánh dân gian"
 price = 90
 stock = 4
 
-[node name="MerchantBoatTop" parent="." instance=ExtResource("4")]
-position = Vector2(1320, 220)
+[node name="MerchantBoatTop" parent="." unique_id=1123626348 instance=ExtResource("4")]
+position = Vector2(1315, 200.99998)
 rotation = -0.18
 merchant_name = "Anh Hai Miệt Vườn"
-product_name = "Trái cây"
 price = 55
-stock = 6
 
-[node name="DeliveryPointShop" parent="." instance=ExtResource("5")]
+[node name="DeliveryPointShop" parent="." unique_id=2111207428 instance=ExtResource("5")]
 position = Vector2(1510, 805)
-point_name = "Tiệm Ánh Đèn"
 
-[node name="DeliveryPointTour" parent="." instance=ExtResource("5")]
+[node name="DeliveryPointTour" parent="." unique_id=17409373 instance=ExtResource("5")]
 position = Vector2(350, 170)
 point_name = "Bến Du Lịch"
 
-[node name="DeliveryPointStage" parent="." instance=ExtResource("5")]
+[node name="DeliveryPointStage" parent="." unique_id=729809663 instance=ExtResource("5")]
 position = Vector2(1600, 210)
 point_name = "Sân Khấu Nổi"
 
-[node name="ScenicSpotBridge" parent="." instance=ExtResource("7")]
+[node name="ScenicSpotBridge" parent="." unique_id=506709437 instance=ExtResource("7")]
 position = Vector2(955, 160)
 spot_id = "bridge"
-spot_name = "Cầu Đèn Lồng"
 
-[node name="ScenicSpotNeonHouses" parent="." instance=ExtResource("7")]
+[node name="ScenicSpotNeonHouses" parent="." unique_id=1459608488 instance=ExtResource("7")]
 position = Vector2(260, 525)
 spot_id = "neon_houses"
 spot_name = "Dãy Nhà Ven Sông"
 
-[node name="UpgradeDock" parent="." instance=ExtResource("8")]
+[node name="UpgradeDock" parent="." unique_id=592782025 instance=ExtResource("8")]
 position = Vector2(1660, 620)
 
-[node name="RiverCurrentMid" parent="." instance=ExtResource("9")]
-position = Vector2(940, 520)
+[node name="RiverCurrentMid" parent="." unique_id=1231710185 instance=ExtResource("9")]
+position = Vector2(949, 471)
 current_force = Vector2(44, -12)
 
-[node name="RiverCurrentBottom" parent="." instance=ExtResource("9")]
+[node name="RiverCurrentBottom" parent="." unique_id=1722123937 instance=ExtResource("9")]
 position = Vector2(800, 810)
 rotation = 0.3
 current_force = Vector2(-34, -4)
 
-[node name="PortalA" parent="." instance=ExtResource("10")]
+[node name="PortalA" parent="." unique_id=1507733670 instance=ExtResource("10")]
 position = Vector2(960, 965)
 
-[node name="PortalB" parent="." instance=ExtResource("10")]
+[node name="PortalB" parent="." unique_id=232121332 instance=ExtResource("10")]
 position = Vector2(1750, 545)
 
-[node name="PortalC" parent="." instance=ExtResource("10")]
+[node name="PortalC" parent="." unique_id=316389278 instance=ExtResource("10")]
 position = Vector2(220, 545)
 
-[node name="QuestBoardA" parent="." instance=ExtResource("11")]
+[node name="QuestBoardA" parent="." unique_id=1707792825 instance=ExtResource("11")]
 position = Vector2(260, 765)
 
-[node name="QuestBoardB" parent="." instance=ExtResource("11")]
+[node name="QuestBoardB" parent="." unique_id=1334571158 instance=ExtResource("11")]
 position = Vector2(1180, 785)
 
-[node name="UI" type="CanvasLayer" parent="."]
+[node name="UI" type="CanvasLayer" parent="." unique_id=1834232825]
 script = ExtResource("6")
+
+[node name="Shore_cai_rang" type="StaticBody2D" parent="." unique_id=441879567]
+
+[node name="CollisionPolygon2D2" type="CollisionPolygon2D" parent="Shore_cai_rang" unique_id=1730347695]
+polygon = PackedVector2Array(1303, 217, 1338, 501, 1486, 621, 1760, 973, 1760, 980, 1891, 9, 1228, 16)
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Shore_cai_rang" unique_id=874254369]
+position = Vector2(-17, 3)
+polygon = PackedVector2Array(672, 13, 645, 131, 631, 231, 584, 336, 460, 540, 59, 935, 59, 1015, 54, 595, 45, 10)
