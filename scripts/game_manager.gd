@@ -102,7 +102,7 @@ func _ready() -> void:
 	
 	_build_maps()
 	_configure_world()
-	_apply_map("lantern", Vector2(960, 760))
+	_apply_map("cai_rang", Vector2(960, 760))
 	_refresh_ui()
 	ui.show_map_banner(str(_current_map()["name"]), "Tìm điểm nhận nhiệm vụ để bắt đầu hợp đồng đầu tiên.")
 
