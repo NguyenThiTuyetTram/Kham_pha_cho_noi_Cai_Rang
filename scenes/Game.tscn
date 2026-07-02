@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://doy6mou722duh"]
 
 [ext_resource type="Script" uid="uid://clhxh4x16ns7m" path="res://scripts/game_manager.gd" id="1"]
-[ext_resource type="Texture2D" uid="uid://da550jc83qpw3" path="res://assets/river_market_background.png" id="2"]
+[ext_resource type="Texture2D" uid="uid://cwsy0u5snegi5" path="res://assets/map_lantern_village.png" id="2_2rd6h"]
 [ext_resource type="PackedScene" path="res://scenes/PlayerBoat.tscn" id="3"]
 [ext_resource type="PackedScene" path="res://scenes/MerchantBoat.tscn" id="4"]
 [ext_resource type="PackedScene" path="res://scenes/DeliveryPoint.tscn" id="5"]
@@ -19,7 +19,7 @@ script = ExtResource("1")
 
 [node name="RiverMarketBackground" type="Sprite2D" parent="." unique_id=168722896]
 position = Vector2(969, 546)
-texture = ExtResource("2")
+texture = ExtResource("2_2rd6h")
 
 [node name="WaterRippleLayer" type="Node2D" parent="." unique_id=1552659174]
 script = ExtResource("12")
@@ -107,6 +107,7 @@ position = Vector2(1180, 785)
 script = ExtResource("6")
 
 [node name="Shore_cai_rang" type="StaticBody2D" parent="." unique_id=441879567]
+visible = false
 
 [node name="CollisionPolygon2D2" type="CollisionPolygon2D" parent="Shore_cai_rang" unique_id=1730347695]
 polygon = PackedVector2Array(1303, 217, 1338, 501, 1486, 621, 1760, 973, 1760, 980, 1891, 9, 1228, 16)
@@ -114,3 +115,33 @@ polygon = PackedVector2Array(1303, 217, 1338, 501, 1486, 621, 1760, 973, 1760, 9
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Shore_cai_rang" unique_id=874254369]
 position = Vector2(-17, 3)
 polygon = PackedVector2Array(672, 13, 645, 131, 631, 231, 584, 336, 460, 540, 59, 935, 59, 1015, 54, 595, 45, 10)
+
+[node name="Shore_ninh_kieu" type="StaticBody2D" parent="." unique_id=206621190]
+visible = false
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Shore_ninh_kieu" unique_id=250885482]
+polygon = PackedVector2Array(791, 29, 796, 27, 423, 673, 197, 1060, 12, 1062, 12, 32)
+
+[node name="CollisionPolygon2D2" type="CollisionPolygon2D" parent="Shore_ninh_kieu" unique_id=2001013417]
+polygon = PackedVector2Array(1394, 71, 1175, 63, 1355, 500, 1181, 74, 1708, 812, 1758, 1038, 1874, 1037, 1862, 66)
+
+[node name="Shore_orchard" type="StaticBody2D" parent="." unique_id=1694256217]
+visible = false
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Shore_orchard" unique_id=1977484951]
+polygon = PackedVector2Array(37, 1072, 495, 716, 805, 212, 666, 425, 52, 30)
+
+[node name="CollisionPolygon2D2" type="CollisionPolygon2D" parent="Shore_orchard" unique_id=1926356821]
+polygon = PackedVector2Array(231, 48, 641, 232, 1069, 153, 1364, 15, 1264, 230, 1367, 21)
+
+[node name="CollisionPolygon2D3" type="CollisionPolygon2D" parent="Shore_orchard" unique_id=2081019305]
+polygon = PackedVector2Array(1388, -2, 1157, 165, 1170, 165, 1586, 560, 1607, 781, 1744, 1021, 1877, 1040, 1887, 25)
+
+[node name="Shore_lantern" type="StaticBody2D" parent="." unique_id=780628064]
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Shore_lantern" unique_id=681918422]
+position = Vector2(-87, -17)
+polygon = PackedVector2Array(191, 1040, 632, 845, 696, 693, 542, 466, 779, 41, 799, 31, 84, 62)
+
+[node name="CollisionPolygon2D2" type="CollisionPolygon2D" parent="Shore_lantern" unique_id=1830342233]
+polygon = PackedVector2Array(1189, 6, 1228, 15, 1344, 322, 1442, 353, 1311, 465, 1384, 544, 1529, 654, 1458, 749, 1581, 948, 1846, 855, 1824, 38)
