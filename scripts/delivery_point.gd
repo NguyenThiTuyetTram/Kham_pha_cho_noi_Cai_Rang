@@ -19,6 +19,8 @@ func _ready() -> void:
 	npc_base_position = npc.position
 	_create_nameplate()
 	_update_nameplate()
+	input_pickable = true
+	input_event.connect(_on_input_event)
 
 
 func _process(delta: float) -> void:
@@ -66,8 +68,14 @@ func reset_interaction_state() -> void:
 func _update_prompt() -> void:
 	if not player_near:
 		return
-	if get_tree().current_scene.get_current_delivery_name() == point_name:
-		if get_tree().current_scene.can_deliver_at(point_name):
+	var current_delivery_name := str(get_tree().current_scene.get_current_delivery_name())
+	var can_deliver := bool(get_tree().current_scene.can_deliver_at(point_name))
+	print("=== DEBUG PROMPT ===")
+	print("Point Name: ", point_name, " | Target Delivery: ", current_delivery_name)
+	print("Can deliver: ", can_deliver)
+	
+	if current_delivery_name == point_name:
+		if can_deliver:
 			get_tree().current_scene.show_prompt("E giao hàng tại %s" % point_name)
 		else:
 			get_tree().current_scene.show_prompt("%s cần đúng hàng trong nhiệm vụ" % point_name)
@@ -119,3 +127,15 @@ func _on_body_exited(body: Node2D) -> void:
 	if body.is_in_group("player"):
 		player_near = false
 		get_tree().current_scene.hide_prompt()
+
+
+func _on_input_event(viewport: Node, event: InputEvent, shape_idx: int) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		var scene = get_tree().current_scene
+		if scene.player != null and not scene.player.input_blocked:
+			var dist: float = global_position.distance_to(scene.player.global_position)
+			if dist <= 680.0:
+				scene.complete_delivery(self)
+				get_viewport().set_input_as_handled()
+			else:
+				scene.ui.flash_prompt("Lái ghe lại gần hơn để giao hàng")

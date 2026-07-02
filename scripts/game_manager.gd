@@ -121,13 +121,16 @@ func accept_quest(board: Area2D) -> void:
 	var quest: Dictionary = _active_quest()
 	var board_id: String = str(board.get("board_id"))
 	if quest_accepted:
+		SceneTransition.play_fail_sfx()
 		ui.flash_prompt("Bạn đang theo hợp đồng hiện tại")
 		return
 	if quest.get("giver", "") != board_id:
+		SceneTransition.play_fail_sfx()
 		ui.flash_prompt("Hợp đồng hiện tại không nhận ở đây")
 		return
 	quest_accepted = true
 	board.call("accept_feedback")
+	SceneTransition.play_success_sfx()
 	ui.show_map_banner(str(_current_map()["name"]), "Đã nhận: %s" % quest["title"])
 	ui.show_dialogue(str(quest["giver_name"]), str(quest.get("dialogue", "Nhận hợp đồng rồi nhé, đi đúng tuyến và quay lại khi hoàn tất.")))
 	_refresh_ui()
@@ -138,34 +141,192 @@ func buy_from_merchant(merchant: Area2D) -> void:
 	var merchant_name: String = str(merchant.get("merchant_name"))
 	var price: int = int(merchant.get("price"))
 	var stock: int = int(merchant.get("stock"))
-	if money < price:
-		ui.flash_prompt("Không đủ tiền để mua %s" % product_name)
-		return
+	
 	if stock <= 0:
 		ui.flash_prompt("%s đã hết hàng" % merchant_name)
 		return
-	money -= price
+
+	# Block player input
+	player.input_blocked = true
+	
+	# Check if merchant is sulking
+	var is_sulking: bool = bool(merchant.get("is_sulking"))
+	if is_sulking:
+		var sulk_pitch := "Nè, mua thì mua đúng giá %dk nghe con. Hồi nãy trả giá đã đời rồi bỏ đi cô còn giận á!" % price
+		ui.show_dialogue(merchant_name, sulk_pitch, false)
+		
+		var choices: Array = []
+		choices.append({
+			"text": "Dạ thôi con mua đúng giá (%dk)" % price,
+			"callback": func():
+				merchant.set("is_sulking", false)
+				_execute_purchase(merchant, price)
+		})
+		choices.append({
+			"text": "Thôi con không mua nữa",
+			"callback": func():
+				_cancel_purchase_sulky_dismissal(merchant_name)
+		})
+		ui.show_choices(choices)
+		return
+		
+	var pitch := ""
+	match product_name:
+		"Trái cây":
+			pitch = "Cô có trái cây tươi rói mới hái ngoài vườn nè con, lấy một giỏ %dk nghen?" % price
+		"Nước dừa":
+			pitch = "Dừa xiêm ngọt lịm mới chặt đây con ơi, uống một trái %dk cho mát nghen?" % price
+		"Bánh dân gian":
+			pitch = "Bánh dân gian nóng hổi thơm phức của dì đây, chỉ %dk thôi nè con." % price
+		_:
+			pitch = "Ghe cô bán %s ngon lắm nè, ủng hộ cô một phần %dk nghen?" % [product_name, price]
+			
+	ui.show_dialogue(merchant_name, pitch, false)
+	
+	var choices: Array = []
+	choices.append({
+		"text": "Mua đúng giá (%dk)" % price,
+		"callback": func():
+			_execute_purchase(merchant, price)
+	})
+	
+	# Bargaining price: reduce by about 15-20%
+	var bargain_price := int(price * 0.8 / 5) * 5
+	if bargain_price >= price:
+		bargain_price = price - 10
+	if bargain_price < 10:
+		bargain_price = int(price * 0.8)
+		
+	choices.append({
+		"text": "Trả giá còn %dk" % bargain_price,
+		"callback": func():
+			_negotiate_bargain(merchant, price, bargain_price)
+	})
+	
+	choices.append({
+		"text": "Thôi con chưa mua",
+		"callback": func():
+			_cancel_purchase_polite(merchant_name)
+	})
+	
+	ui.show_choices(choices)
+
+
+func _execute_purchase(merchant: Area2D, final_price: int) -> void:
+	var product_name: String = str(merchant.get("product_name"))
+	var merchant_name: String = str(merchant.get("merchant_name"))
+	var stock: int = int(merchant.get("stock"))
+	
+	if money < final_price:
+		SceneTransition.play_fail_sfx()
+		ui.show_dialogue(merchant_name, "Ủa tiền đâu con ơi? Kiếm thêm tiền rồi quay lại ghe cô nghen!", true)
+		player.input_blocked = false
+		return
+		
+	money -= final_price
 	stock -= 1
 	merchant.set("stock", stock)
 	cargo[product_name] = get_cargo_count(product_name) + 1
 	merchant.call("purchase_feedback")
-	ui.flash_prompt("Đã mua %s từ %s" % [product_name, merchant_name])
+	
+	SceneTransition.play_success_sfx()
+	var thank_you := "Cảm ơn con nhiều nghen! Ghe cô lúc nào cũng tươi ngon hết á."
+	ui.show_dialogue(merchant_name, thank_you, true)
+	ui.flash_prompt("Đã mua %s với giá %dk" % [product_name, final_price])
 	_refresh_ui()
+	player.input_blocked = false
+
+
+func _negotiate_bargain(merchant: Area2D, original_price: int, bargain_price: int) -> void:
+	var merchant_name: String = str(merchant.get("merchant_name"))
+	
+	var base_chance := 0.5
+	var total_chance := base_chance + (reputation * 0.08)
+	var is_success := randf() < total_chance
+	
+	if is_success:
+		var success_msg := "Thôi coi như bán mở hàng lấy thảo, cô bớt cho con còn %dk đó. Lấy nghen?" % bargain_price
+		ui.show_dialogue(merchant_name, success_msg, false)
+		
+		var choices: Array = []
+		choices.append({
+			"text": "Dạ chốt mua! (%dk)" % bargain_price,
+			"callback": func():
+				_execute_purchase(merchant, bargain_price)
+		})
+		choices.append({
+			"text": "Thôi con không mua nữa",
+			"callback": func():
+				_cancel_purchase_with_sulk(merchant)
+		})
+		ui.show_choices(choices)
+	else:
+		SceneTransition.play_fail_sfx()
+		var fail_msg := "Trời ơi bớt dữ vậy con! Hàng ngon vậy bán giá đó cô lỗ chết. Đúng %dk cô mới bán được nà." % original_price
+		ui.show_dialogue(merchant_name, fail_msg, false)
+		
+		var choices: Array = []
+		choices.append({
+			"text": "Dạ thôi con mua đúng giá (%dk)" % original_price,
+			"callback": func():
+				_execute_purchase(merchant, original_price)
+		})
+		choices.append({
+			"text": "Thôi vậy con không mua nữa",
+			"callback": func():
+				_cancel_purchase_with_sulk(merchant)
+		})
+		ui.show_choices(choices)
+
+
+func _cancel_purchase_polite(merchant_name: String) -> void:
+	var cancel_msg := "Hẹn gặp lại con lần sau nghen! Ghe qua lúc nào cũng có sẵn đồ ngon."
+	ui.show_dialogue(merchant_name, cancel_msg, true)
+	player.input_blocked = false
+
+
+func _cancel_purchase_with_sulk(merchant: Area2D) -> void:
+	var merchant_name: String = str(merchant.get("merchant_name"))
+	merchant.set("is_sulking", true)
+	SceneTransition.play_fail_sfx()
+	var cancel_msg := "Trời ơi, trả giá đã đời rồi hông mua hả con? Đốt phong long vía dữ nha!"
+	ui.show_dialogue(merchant_name, cancel_msg, true)
+	player.input_blocked = false
+
+
+func _cancel_purchase_sulky_dismissal(merchant_name: String) -> void:
+	SceneTransition.play_fail_sfx()
+	var cancel_msg := "Đi đi, chừng nào mua đúng giá thì nói chuyện với cô!"
+	ui.show_dialogue(merchant_name, cancel_msg, true)
+	player.input_blocked = false
 
 
 func complete_delivery(point: Area2D) -> void:
 	var quest: Dictionary = _active_quest()
 	var point_name: String = str(point.get("point_name"))
+	
+	print("=== DEBUG DELIVERY ===")
+	print("Quest Accepted: ", quest_accepted)
+	print("Current Map: ", current_map_id, " | Quest Map: ", quest.get("map"))
+	print("Point Name: ", point_name, " | Quest Delivery: ", quest.get("delivery"))
+	print("Cargo Dictionary: ", cargo)
+	print("Quest Products Required: ", quest.get("products"))
+	print("Has Required Products: ", _has_required_products(quest))
+	
 	if not quest_accepted:
+		SceneTransition.play_fail_sfx()
 		ui.flash_prompt("Hãy nhận nhiệm vụ trước tại điểm điều phối")
 		return
 	if quest.get("map", "") != current_map_id:
+		SceneTransition.play_fail_sfx()
 		ui.flash_prompt("Đơn này ở khu vực khác")
 		return
 	if not quest.has("delivery") or quest["delivery"] != point_name:
+		SceneTransition.play_fail_sfx()
 		ui.flash_prompt("Đây chưa phải điểm giao của nhiệm vụ hiện tại")
 		return
 	if not _has_required_products(quest):
+		SceneTransition.play_fail_sfx()
 		ui.flash_prompt("Chưa đủ hàng cho đơn này")
 		return
 
@@ -173,6 +334,7 @@ func complete_delivery(point: Area2D) -> void:
 	money += int(quest["reward"])
 	reputation += int(quest["rep"])
 	point.call("delivery_feedback")
+	SceneTransition.play_success_sfx()
 	ui.show_dialogue(point_name, "Nhận hàng thành công. Chuyến này làm khu chợ sáng thêm một nhịp rồi!")
 	ui.flash_prompt("+%dk, danh tiếng +%d" % [quest["reward"], quest["rep"]])
 	_advance_quest()
@@ -180,16 +342,19 @@ func complete_delivery(point: Area2D) -> void:
 
 func discover_spot(spot: Area2D) -> void:
 	if not quest_accepted:
+		SceneTransition.play_fail_sfx()
 		ui.flash_prompt("Hãy nhận nhiệm vụ trước khi check-in")
 		return
 	var spot_id: String = str(spot.get("spot_id"))
 	var spot_name: String = str(spot.get("spot_name"))
 	if discovered_spots.has(spot_id):
+		SceneTransition.play_fail_sfx()
 		ui.flash_prompt("Bạn đã check-in điểm này rồi")
 		return
 	discovered_spots[spot_id] = true
 	reputation += 1
 	spot.call("discovery_feedback")
+	SceneTransition.play_success_sfx()
 	ui.flash_prompt("Đã chụp ảnh: %s" % spot_name)
 
 	var quest: Dictionary = _active_quest()
@@ -206,9 +371,11 @@ func discover_spot(spot: Area2D) -> void:
 func buy_engine_upgrade(dock: Area2D) -> void:
 	var cost: int = 180 + (engine_level - 1) * 170
 	if engine_level >= 4:
+		SceneTransition.play_fail_sfx()
 		ui.flash_prompt("Máy thuyền đã nâng cấp tối đa")
 		return
 	if money < cost:
+		SceneTransition.play_fail_sfx()
 		ui.flash_prompt("Cần %dk để nâng cấp máy" % cost)
 		return
 	money -= cost
@@ -216,6 +383,7 @@ func buy_engine_upgrade(dock: Area2D) -> void:
 	player.max_speed += 42.0
 	player.acceleration += 115.0
 	dock.call("upgrade_feedback")
+	SceneTransition.play_success_sfx()
 	ui.flash_prompt("Nâng cấp máy cấp %d" % engine_level)
 	_refresh_ui()
 
@@ -226,7 +394,7 @@ func get_cargo_count(product: String) -> int:
 
 func can_deliver_at(point_name: String) -> bool:
 	var quest: Dictionary = _active_quest()
-	return quest.get("map", "") == current_map_id and quest.get("delivery", "") == point_name and _has_required_products(quest)
+	return quest_accepted and quest.get("map", "") == current_map_id and quest.get("delivery", "") == point_name and _has_required_products(quest)
 
 
 func get_current_delivery_name() -> String:

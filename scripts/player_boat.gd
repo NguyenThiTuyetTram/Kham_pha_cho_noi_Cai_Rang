@@ -15,6 +15,7 @@ var visual_roll := 0.0
 var visual_bob := 0.0
 var water_polygons: Array[PackedVector2Array] = []
 var last_safe_position := Vector2.ZERO
+var input_blocked := false
 
 func _ready() -> void:
 	add_to_group("player")
@@ -25,7 +26,9 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	z_index = int(global_position.y / 10.0)
-	var input_vector := Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	var input_vector := Vector2.ZERO
+	if not input_blocked:
+		input_vector = Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	throttle_amount = move_toward(throttle_amount, input_vector.length(), delta * 3.8)
 	if input_vector.length() > 0.0:
 		velocity = velocity.move_toward(input_vector * max_speed, acceleration * delta)

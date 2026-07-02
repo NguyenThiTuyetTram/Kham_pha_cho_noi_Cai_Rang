@@ -15,6 +15,8 @@ var banner_subtitle: Label
 var dialogue_panel: PanelContainer
 var dialogue_speaker: Label
 var dialogue_text: Label
+var choices_container: HBoxContainer
+var dialogue_tween: Tween
 
 func _ready() -> void:
 	_build_hud()
@@ -67,17 +69,82 @@ func flash_prompt(text: String) -> void:
 		hide_prompt()
 
 
-func show_dialogue(speaker: String, text: String) -> void:
+func show_dialogue(speaker: String, text: String, auto_fade: bool = true) -> void:
+	if dialogue_tween:
+		dialogue_tween.kill()
+	clear_choices()
 	dialogue_speaker.text = speaker
 	dialogue_text.text = text
 	dialogue_panel.visible = true
-	dialogue_panel.modulate.a = 0.0
-	var tween: Tween = create_tween()
-	tween.tween_property(dialogue_panel, "modulate:a", 1.0, 0.12)
-	tween.tween_interval(2.2)
-	tween.tween_property(dialogue_panel, "modulate:a", 0.0, 0.22)
-	await tween.finished
+	dialogue_panel.modulate.a = 1.0
+	
+	if auto_fade:
+		dialogue_tween = create_tween()
+		dialogue_tween.tween_property(dialogue_panel, "modulate:a", 1.0, 0.12)
+		dialogue_tween.tween_interval(2.5)
+		dialogue_tween.tween_property(dialogue_panel, "modulate:a", 0.0, 0.22)
+		await dialogue_tween.finished
+		if dialogue_panel.modulate.a == 0.0:
+			dialogue_panel.visible = false
+
+
+func hide_dialogue() -> void:
+	if dialogue_tween:
+		dialogue_tween.kill()
+	clear_choices()
 	dialogue_panel.visible = false
+
+
+func show_choices(choices: Array) -> void:
+	clear_choices()
+	for choice in choices:
+		var btn := Button.new()
+		btn.text = choice["text"]
+		btn.add_theme_font_size_override("font_size", 15)
+		btn.add_theme_color_override("font_color", Color(0.9, 0.98, 1.0))
+		btn.add_theme_color_override("font_hover_color", Color(1.0, 0.85, 0.3))
+		btn.add_theme_color_override("font_focus_color", Color(1.0, 0.85, 0.3))
+		
+		var normal_style := StyleBoxFlat.new()
+		normal_style.bg_color = Color(0.03, 0.08, 0.15, 0.88)
+		normal_style.border_color = Color(0.0, 0.7, 0.85, 0.6)
+		normal_style.border_width_left = 1
+		normal_style.border_width_top = 1
+		normal_style.border_width_right = 1
+		normal_style.border_width_bottom = 1
+		normal_style.corner_radius_top_left = 4
+		normal_style.corner_radius_top_right = 4
+		normal_style.corner_radius_bottom_left = 4
+		normal_style.corner_radius_bottom_right = 4
+		normal_style.content_margin_left = 12
+		normal_style.content_margin_right = 12
+		normal_style.content_margin_top = 6
+		normal_style.content_margin_bottom = 6
+		
+		var hover_style := normal_style.duplicate() as StyleBoxFlat
+		hover_style.bg_color = Color(0.05, 0.14, 0.25, 0.92)
+		hover_style.border_color = Color(0.0, 0.9, 1.0, 0.85)
+		
+		btn.add_theme_stylebox_override("normal", normal_style)
+		btn.add_theme_stylebox_override("hover", hover_style)
+		btn.add_theme_stylebox_override("focus", hover_style)
+		btn.add_theme_stylebox_override("pressed", hover_style)
+		
+		var current_choice = choice
+		btn.pressed.connect(func():
+			clear_choices()
+			current_choice["callback"].call()
+		)
+		choices_container.add_child(btn)
+		
+	if choices_container.get_child_count() > 0:
+		choices_container.get_child(0).grab_focus()
+
+
+func clear_choices() -> void:
+	if choices_container != null:
+		for child in choices_container.get_children():
+			child.queue_free()
 
 
 func _build_hud() -> void:
@@ -154,21 +221,21 @@ func _build_hud() -> void:
 
 	dialogue_panel = PanelContainer.new()
 	dialogue_panel.visible = false
-	dialogue_panel.size = Vector2(660, 108)
-	dialogue_panel.custom_minimum_size = Vector2(660, 108)
+	dialogue_panel.size = Vector2(660, 160)
+	dialogue_panel.custom_minimum_size = Vector2(660, 160)
 	dialogue_panel.anchor_left = 0.5
 	dialogue_panel.anchor_right = 0.5
 	dialogue_panel.anchor_top = 1.0
 	dialogue_panel.anchor_bottom = 1.0
 	dialogue_panel.offset_left = -330
 	dialogue_panel.offset_right = 330
-	dialogue_panel.offset_top = -212
+	dialogue_panel.offset_top = -272
 	dialogue_panel.offset_bottom = -104
 	dialogue_panel.add_theme_stylebox_override("panel", _panel_style(Color(0.01, 0.018, 0.035, 0.9), Color(0.0, 0.9, 1.0, 0.88)))
 	add_child(dialogue_panel)
 
 	var dialogue_box: VBoxContainer = VBoxContainer.new()
-	dialogue_box.add_theme_constant_override("separation", 5)
+	dialogue_box.add_theme_constant_override("separation", 6)
 	dialogue_panel.add_child(dialogue_box)
 
 	dialogue_speaker = _hud_label(17, Color(1.0, 0.78, 0.34))
@@ -176,6 +243,11 @@ func _build_hud() -> void:
 	dialogue_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	dialogue_box.add_child(dialogue_speaker)
 	dialogue_box.add_child(dialogue_text)
+	
+	choices_container = HBoxContainer.new()
+	choices_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	choices_container.add_theme_constant_override("separation", 12)
+	dialogue_box.add_child(choices_container)
 
 
 func _hud_label(size: int, color: Color) -> Label:

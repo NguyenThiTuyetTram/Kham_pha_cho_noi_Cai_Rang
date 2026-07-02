@@ -6,6 +6,7 @@ extends Area2D
 @export var stock := 6
 
 var player_near := false
+var is_sulking := false
 var name_label: Label
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var fruit_icon: Sprite2D = $FruitIcon
@@ -18,6 +19,8 @@ func _ready() -> void:
 	fruit_icon.modulate = Color(1, 1, 1, 0.0)
 	_create_nameplate()
 	_update_nameplate()
+	input_pickable = true
+	input_event.connect(_on_input_event)
 
 
 func _process(delta: float) -> void:
@@ -50,6 +53,7 @@ func purchase_feedback() -> void:
 
 func reset_interaction_state() -> void:
 	player_near = false
+	is_sulking = false
 	if fruit_icon != null:
 		fruit_icon.modulate.a = 0.0
 
@@ -68,7 +72,7 @@ func _update_prompt() -> void:
 	if stock <= 0:
 		get_tree().current_scene.show_prompt("%s đã hết hàng" % merchant_name)
 	else:
-		get_tree().current_scene.show_prompt("E mua %s - %dk (%s còn %d)" % [product_name, price, merchant_name, stock])
+		get_tree().current_scene.show_prompt("E Hỏi mua %s (%s còn %d)" % [product_name, merchant_name, stock])
 
 
 func _create_nameplate() -> void:
@@ -116,3 +120,15 @@ func _on_body_exited(body: Node2D) -> void:
 	if body.is_in_group("player"):
 		player_near = false
 		get_tree().current_scene.hide_prompt()
+
+
+func _on_input_event(viewport: Node, event: InputEvent, shape_idx: int) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		var scene = get_tree().current_scene
+		if scene.player != null and not scene.player.input_blocked:
+			var dist: float = global_position.distance_to(scene.player.global_position)
+			if dist <= 680.0:
+				scene.buy_from_merchant(self)
+				get_viewport().set_input_as_handled()
+			else:
+				scene.ui.flash_prompt("Lái ghe lại gần hơn để hỏi mua hàng")
