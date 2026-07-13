@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://doy6mou722duh"]
 
 [ext_resource type="Script" uid="uid://clhxh4x16ns7m" path="res://scripts/game_manager.gd" id="1"]
-[ext_resource type="Texture2D" uid="uid://cwsy0u5snegi5" path="res://assets/map_lantern_village.png" id="2_2rd6h"]
+[ext_resource type="Texture2D" uid="uid://mk6cy4rs4efk" path="res://assets/map_ninh_kieu.png" id="2_2rd6h"]
 [ext_resource type="PackedScene" path="res://scenes/PlayerBoat.tscn" id="3"]
 [ext_resource type="PackedScene" path="res://scenes/MerchantBoat.tscn" id="4"]
 [ext_resource type="PackedScene" path="res://scenes/DeliveryPoint.tscn" id="5"]
@@ -31,19 +31,19 @@ script = ExtResource("13")
 position = Vector2(960, 760)
 
 [node name="MerchantBoatLeft" parent="." unique_id=2009890421 instance=ExtResource("4")]
-position = Vector2(435, 330)
+position = Vector2(427.00003, 985)
 rotation = -0.32
 stock = 8
 
 [node name="MerchantBoatRight" parent="." unique_id=1723471312 instance=ExtResource("4")]
-position = Vector2(1510, 430)
+position = Vector2(1532.9999, 973.99994)
 rotation = 0.26
 merchant_name = "Chú Bảy Dừa"
 product_name = "Nước dừa"
 price = 70
 
 [node name="MerchantBoatBottom" parent="." unique_id=500368126 instance=ExtResource("4")]
-position = Vector2(510, 800)
+position = Vector2(601, 736)
 rotation = 0.18
 merchant_name = "Dì Tư Bánh"
 product_name = "Bánh dân gian"
@@ -51,20 +51,20 @@ price = 90
 stock = 4
 
 [node name="MerchantBoatTop" parent="." unique_id=1123626348 instance=ExtResource("4")]
-position = Vector2(1315, 200.99998)
+position = Vector2(1377.9999, 374)
 rotation = -0.18
 merchant_name = "Anh Hai Miệt Vườn"
 price = 55
 
 [node name="DeliveryPointShop" parent="." unique_id=2111207428 instance=ExtResource("5")]
-position = Vector2(1510, 805)
+position = Vector2(1537, 322)
 
 [node name="DeliveryPointTour" parent="." unique_id=17409373 instance=ExtResource("5")]
 position = Vector2(350, 170)
 point_name = "Bến Du Lịch"
 
 [node name="DeliveryPointStage" parent="." unique_id=729809663 instance=ExtResource("5")]
-position = Vector2(1600, 210)
+position = Vector2(1239, 363)
 point_name = "Sân Khấu Nổi"
 
 [node name="ScenicSpotBridge" parent="." unique_id=506709437 instance=ExtResource("7")]
@@ -77,7 +77,7 @@ spot_id = "neon_houses"
 spot_name = "Dãy Nhà Ven Sông"
 
 [node name="UpgradeDock" parent="." unique_id=592782025 instance=ExtResource("8")]
-position = Vector2(1660, 620)
+position = Vector2(1540, 727)
 
 [node name="RiverCurrentMid" parent="." unique_id=1231710185 instance=ExtResource("9")]
 position = Vector2(949, 471)
@@ -92,13 +92,13 @@ current_force = Vector2(-34, -4)
 position = Vector2(960, 965)
 
 [node name="PortalB" parent="." unique_id=232121332 instance=ExtResource("10")]
-position = Vector2(1750, 545)
+position = Vector2(1733, 528)
 
 [node name="PortalC" parent="." unique_id=316389278 instance=ExtResource("10")]
-position = Vector2(220, 545)
+position = Vector2(176, 645)
 
 [node name="QuestBoardA" parent="." unique_id=1707792825 instance=ExtResource("11")]
-position = Vector2(260, 765)
+position = Vector2(664, 345)
 
 [node name="QuestBoardB" parent="." unique_id=1334571158 instance=ExtResource("11")]
 position = Vector2(1180, 785)
@@ -138,6 +138,7 @@ polygon = PackedVector2Array(231, 48, 641, 232, 1069, 153, 1364, 15, 1264, 230, 
 polygon = PackedVector2Array(1388, -2, 1157, 165, 1170, 165, 1586, 560, 1607, 781, 1744, 1021, 1877, 1040, 1887, 25)
 
 [node name="Shore_lantern" type="StaticBody2D" parent="." unique_id=780628064]
+visible = false
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Shore_lantern" unique_id=681918422]
 position = Vector2(-87, -17)

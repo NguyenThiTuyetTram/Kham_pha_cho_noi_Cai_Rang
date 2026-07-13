@@ -703,7 +703,7 @@ func _build_maps() -> void:
 				])
 			],
 			"quest_boards": [
-				{"pos": Vector2(300, 735), "id": "cai_rang_dispatch", "name": "Trạm Điều Phối Ánh Đèn", "role": "Hợp đồng mở chợ", "boat_offset": Vector2(-18, 10), "npc_offset": Vector2(-82, -52), "marker_offset": Vector2(70, -86), "label_offset": Vector2(-170, -174)}
+				{"pos": Vector2(300, 700), "id": "cai_rang_dispatch", "name": "Trạm Điều Phối Ánh Đèn", "role": "Hợp đồng mở chợ", "boat_offset": Vector2(-18, 10), "npc_offset": Vector2(-20, 20), "marker_offset": Vector2(70, -86), "label_offset": Vector2(-170, -174)}
 			],
 			"decorations": [
 				{"kind": "lantern", "pos": Vector2(318, 610), "phase": 0.2},
@@ -711,18 +711,18 @@ func _build_maps() -> void:
 				{"kind": "sign", "pos": Vector2(1490, 275), "label": "CÁI RĂNG"}
 			],
 			"merchants": [
-				{"pos": Vector2(700, 455), "rot": -0.32, "name": "Cô Sáu", "product": "Trái cây", "price": 50, "stock": 10},
-				{"pos": Vector2(1395, 460), "rot": 0.20, "name": "Chú Bảy Dừa", "product": "Nước dừa", "price": 70, "stock": 7},
-				{"pos": Vector2(510, 800), "rot": 0.18, "name": "Dì Tư Bánh", "product": "Bánh dân gian", "price": 90, "stock": 5},
-				{"pos": Vector2(1110, 330), "rot": -0.18, "name": "Anh Hai Miệt Vườn", "product": "Trái cây", "price": 55, "stock": 8}
+				{"pos": Vector2(500, 400), "rot": -0.32, "name": "Cô Sáu", "product": "Trái cây", "price": 50, "stock": 10},
+				{"pos": Vector2(1300, 450), "rot": 0.20, "name": "Chú Bảy Dừa", "product": "Nước dừa", "price": 70, "stock": 7},
+				{"pos": Vector2(750, 750), "rot": 0.18, "name": "Dì Tư Bánh", "product": "Bánh dân gian", "price": 90, "stock": 5},
+				{"pos": Vector2(1000, 350), "rot": -0.18, "name": "Anh Hai Miệt Vườn", "product": "Trái cây", "price": 55, "stock": 8}
 			],
 			"deliveries": [
-				{"pos": Vector2(1510, 805), "name": "Tiệm Ánh Đèn"},
-				{"pos": Vector2(350, 170), "name": "Bến Du Lịch"},
-				{"pos": Vector2(1260, 560), "name": "Sân Khấu Nổi", "marker_offset": Vector2(250, -278), "npc_offset": Vector2(302, -294), "label_offset": Vector2(220, -378)}
+				{"pos": Vector2(1400, 750), "name": "Tiệm Ánh Đèn"},
+				{"pos": Vector2(350, 250), "name": "Bến Du Lịch"},
+				{"pos": Vector2(1260, 650), "name": "Sân Khấu Nổi", "marker_offset": Vector2(250, -278), "npc_offset": Vector2(302, -294), "label_offset": Vector2(220, -378)}
 			],
 			"spots": [
-				{"pos": Vector2(955, 160), "id": "cai_rang_bridge", "name": "Cầu Đèn Lồng"},
+				{"pos": Vector2(955, 220), "id": "cai_rang_bridge", "name": "Cầu Đèn Lồng"},
 				{"pos": Vector2(260, 525), "id": "cai_rang_neon", "name": "Dãy Nhà Ven Sông"}
 			],
 			"portals": [
@@ -748,8 +748,8 @@ func _build_maps() -> void:
 			"name": "Bến Ninh Kiều",
 			"background": "res://assets/map_ninh_kieu.png",
 			"quest_boards": [
-				{"pos": Vector2(470, 525), "id": "ninh_kieu_pr", "name": "Quầy PR Du Lịch Đêm", "role": "Nhiệm vụ check-in"},
-				{"pos": Vector2(1180, 785), "id": "ninh_kieu_tour", "name": "Bàn Điều Tour Ven Sông", "role": "Đơn đặc sản"}
+				{"pos": Vector2(450, 600), "id": "ninh_kieu_pr", "name": "Quầy PR Du Lịch Đêm", "role": "Nhiệm vụ check-in", "npc_offset": Vector2(-20, 20)},
+				{"pos": Vector2(1250, 800), "id": "ninh_kieu_tour", "name": "Bàn Điều Tour Ven Sông", "role": "Đơn đặc sản", "npc_offset": Vector2(-20, 20)}
 			],
 			"decorations": [
 				{"kind": "lantern", "pos": Vector2(430, 430), "phase": 0.1},
@@ -757,14 +757,14 @@ func _build_maps() -> void:
 				{"kind": "sign", "pos": Vector2(1320, 710), "label": "TOUR ĐÊM"}
 			],
 			"merchants": [
-				{"pos": Vector2(360, 730), "rot": 0.2, "name": "Quán Dừa Ven Bến", "product": "Nước dừa", "price": 65, "stock": 10},
-				{"pos": Vector2(1460, 350), "rot": -0.2, "name": "Ghe Bánh Du Lịch", "product": "Bánh dân gian", "price": 85, "stock": 7},
-				{"pos": Vector2(1540, 760), "rot": 0.12, "name": "Sạp Quà Miệt Vườn", "product": "Trái cây", "price": 60, "stock": 8}
+				{"pos": Vector2(450, 750), "rot": 0.2, "name": "Quán Dừa Ven Bến", "product": "Nước dừa", "price": 65, "stock": 10},
+				{"pos": Vector2(1460, 400), "rot": -0.2, "name": "Ghe Bánh Du Lịch", "product": "Bánh dân gian", "price": 85, "stock": 7},
+				{"pos": Vector2(1100, 650), "rot": 0.12, "name": "Sạp Quà Miệt Vườn", "product": "Trái cây", "price": 60, "stock": 8}
 			],
 			"deliveries": [
-				{"pos": Vector2(980, 220), "name": "Bến Du Lịch"},
-				{"pos": Vector2(285, 395), "name": "Quầy Thông Tin"},
-				{"pos": Vector2(1620, 620), "name": "Nhà Hàng Ven Sông"}
+				{"pos": Vector2(980, 250), "name": "Bến Du Lịch"},
+				{"pos": Vector2(300, 400), "name": "Quầy Thông Tin"},
+				{"pos": Vector2(1450, 550), "name": "Nhà Hàng Ven Sông"}
 			],
 			"spots": [
 				{"pos": Vector2(510, 245), "id": "ninh_kieu_prom", "name": "Lối Dạo Ánh Neon"},
@@ -783,7 +783,7 @@ func _build_maps() -> void:
 			"name": "Kênh Vườn Trái Cây",
 			"background": "res://assets/map_orchard_canals.png",
 			"quest_boards": [
-				{"pos": Vector2(280, 520), "id": "orchard_coop", "name": "Hợp Tác Xã Nhà Vườn", "role": "Đơn thu hoạch"}
+				{"pos": Vector2(300, 500), "id": "orchard_coop", "name": "Hợp Tác Xã Nhà Vườn", "role": "Đơn thu hoạch", "npc_offset": Vector2(-20, 20)}
 			],
 			"decorations": [
 				{"kind": "lantern", "pos": Vector2(355, 410), "phase": 0.2},
@@ -791,13 +791,13 @@ func _build_maps() -> void:
 				{"kind": "sign", "pos": Vector2(340, 250), "label": "NHÀ VƯỜN"}
 			],
 			"merchants": [
-				{"pos": Vector2(380, 310), "rot": -0.1, "name": "Vườn Chôm Chôm", "product": "Trái cây", "price": 45, "stock": 12},
-				{"pos": Vector2(1500, 350), "rot": 0.24, "name": "Ghe Dừa Non", "product": "Nước dừa", "price": 60, "stock": 8},
-				{"pos": Vector2(1380, 790), "rot": -0.18, "name": "Lò Bánh Lá Dứa", "product": "Bánh dân gian", "price": 80, "stock": 6}
+				{"pos": Vector2(500, 350), "rot": -0.1, "name": "Vườn Chôm Chôm", "product": "Trái cây", "price": 45, "stock": 12},
+				{"pos": Vector2(1250, 400), "rot": 0.24, "name": "Ghe Dừa Non", "product": "Nước dừa", "price": 60, "stock": 8},
+				{"pos": Vector2(1300, 750), "rot": -0.18, "name": "Lò Bánh Lá Dứa", "product": "Bánh dân gian", "price": 80, "stock": 6}
 			],
 			"deliveries": [
-				{"pos": Vector2(1635, 540), "name": "Nhà Vườn Chín Ngọt"},
-				{"pos": Vector2(315, 820), "name": "Bến Gom Hàng"}
+				{"pos": Vector2(1300, 550), "name": "Nhà Vườn Chín Ngọt"},
+				{"pos": Vector2(350, 800), "name": "Bến Gom Hàng"}
 			],
 			"spots": [
 				{"pos": Vector2(930, 230), "id": "orchard_bridge", "name": "Cầu Gỗ Nhà Vườn"},
@@ -817,8 +817,8 @@ func _build_maps() -> void:
 			"name": "Làng Đèn Lồng",
 			"background": "res://assets/map_lantern_village.png",
 			"quest_boards": [
-				{"pos": Vector2(410, 210), "id": "lantern_workshop", "name": "Xưởng Sáng Tạo Đèn Lồng", "role": "Chiến dịch hình ảnh"},
-				{"pos": Vector2(1310, 555), "id": "festival_stage_office", "name": "Ban Tổ Chức Đêm Hội", "role": "Hợp đồng cuối"}
+				{"pos": Vector2(450, 300), "id": "lantern_workshop", "name": "Xưởng Sáng Tạo Đèn Lồng", "role": "Chiến dịch hình ảnh", "npc_offset": Vector2(-20, 20)},
+				{"pos": Vector2(1350, 600), "id": "festival_stage_office", "name": "Ban Tổ Chức Đêm Hội", "role": "Hợp đồng cuối", "npc_offset": Vector2(-20, 20)}
 			],
 			"decorations": [
 				{"kind": "lantern", "pos": Vector2(465, 470), "phase": 0.3},
@@ -827,12 +827,12 @@ func _build_maps() -> void:
 				{"kind": "sign", "pos": Vector2(1120, 205), "label": "LÀNG ĐÈN"}
 			],
 			"merchants": [
-				{"pos": Vector2(410, 360), "rot": 0.16, "name": "Ghe Trái Cây Hội Đèn", "product": "Trái cây", "price": 58, "stock": 10},
-				{"pos": Vector2(1500, 360), "rot": -0.25, "name": "Cô Út Dừa Xiêm", "product": "Nước dừa", "price": 68, "stock": 8},
-				{"pos": Vector2(520, 790), "rot": 0.14, "name": "Tiệm Bánh Làng Nghề", "product": "Bánh dân gian", "price": 88, "stock": 8}
+				{"pos": Vector2(450, 450), "rot": 0.16, "name": "Ghe Trái Cây Hội Đèn", "product": "Trái cây", "price": 58, "stock": 10},
+				{"pos": Vector2(1450, 350), "rot": -0.25, "name": "Cô Út Dừa Xiêm", "product": "Nước dừa", "price": 68, "stock": 8},
+				{"pos": Vector2(600, 750), "rot": 0.14, "name": "Tiệm Bánh Làng Nghề", "product": "Bánh dân gian", "price": 88, "stock": 8}
 			],
 			"deliveries": [
-				{"pos": Vector2(1520, 790), "name": "Sân Khấu Nổi"},
+				{"pos": Vector2(1350, 700), "name": "Sân Khấu Nổi"},
 				{"pos": Vector2(330, 190), "name": "Xưởng Đèn Lồng"}
 			],
 			"spots": [
