@@ -104,6 +104,61 @@ func play_success_sfx() -> void:
 	player.finished.connect(player.queue_free)
 
 
+func play_load_sfx() -> void:
+	var sample_rate := 22050
+	var duration := 0.30
+	var num_samples := int(sample_rate * duration)
+	var pcm_data := PackedByteArray()
+	pcm_data.resize(num_samples * 2)
+	for i in range(num_samples):
+		var t := float(i) / float(sample_rate)
+		var freq := 120.0 + t * 60.0
+		var sample := sin(2.0 * PI * freq * t)
+		var noise := randf() * 0.3
+		var envelope := 1.0 - (t / duration)
+		var val := int((sample * 0.6 + noise) * envelope * 0.22 * 32767.0)
+		pcm_data.encode_s16(i * 2, clamp(val, -32768, 32767))
+	var stream := AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = sample_rate
+	stream.stereo = false
+	stream.data = pcm_data
+	var player := AudioStreamPlayer.new()
+	player.stream = stream
+	player.volume_db = -5.0
+	player.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(player)
+	player.play()
+	player.finished.connect(player.queue_free)
+
+
+func play_unload_sfx() -> void:
+	var sample_rate := 22050
+	var duration := 0.28
+	var num_samples := int(sample_rate * duration)
+	var pcm_data := PackedByteArray()
+	pcm_data.resize(num_samples * 2)
+	for i in range(num_samples):
+		var t := float(i) / float(sample_rate)
+		var freq := 320.0 - t * 450.0
+		var sample := sin(2.0 * PI * freq * t)
+		var envelope := 1.0 - (t / duration)
+		var val := int(sample * envelope * 0.18 * 32767.0)
+		pcm_data.encode_s16(i * 2, clamp(val, -32768, 32767))
+	var stream := AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = sample_rate
+	stream.stereo = false
+	stream.data = pcm_data
+	var player := AudioStreamPlayer.new()
+	player.stream = stream
+	player.volume_db = -6.0
+	player.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(player)
+	player.play()
+	player.finished.connect(player.queue_free)
+
+
 func play_fail_sfx() -> void:
 	var sample_rate := 22050
 	var duration := 0.25

@@ -18,6 +18,19 @@ var background: Sprite2D
 var water_ripple_layer: Node2D
 var decoration_layer: Node2D
 var maps: Dictionary = {}
+@onready var _st: Node = get_node("/root/SceneTransition")
+
+var _hold_target: Node2D = null
+var _hold_timer: float = 0.0
+const HOLD_DURATION: float = 0.30
+var _interact_groups: Dictionary = {
+	"merchant_boat": "buy_from_merchant",
+	"quest_hub": "accept_quest",
+	"delivery_point": "complete_delivery",
+	"scenic_spot": "discover_spot",
+	"river_portal": "use_portal",
+	"upgrade_dock": "buy_engine_upgrade"
+}
 
 var quests: Array[Dictionary] = [
 	{
@@ -107,6 +120,97 @@ func _ready() -> void:
 	ui.show_map_banner(str(_current_map()["name"]), "Tìm điểm nhận nhiệm vụ để bắt đầu hợp đồng đầu tiên.")
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	if player.input_blocked or ui.dialogue_panel.visible:
+		_hold_target = null
+		_hold_timer = 0.0
+		ui.hide_interact_progress()
+		return
+
+	var target := _get_nearest_interactable()
+
+	if event.is_action_pressed("interact"):
+		if target != null:
+			_hold_target = target
+			_hold_timer = 0.0
+			ui.show_interact_progress(0.0)
+		else:
+			_hold_target = null
+			_hold_timer = 0.0
+			ui.hide_interact_progress()
+
+	elif event.is_action_released("interact"):
+		_hold_target = null
+		_hold_timer = 0.0
+		ui.hide_interact_progress()
+
+
+func _process(delta: float) -> void:
+	if _hold_target != null and is_instance_valid(_hold_target):
+		if not bool(_hold_target.get("player_near")):
+			_hold_target = null
+			_hold_timer = 0.0
+			ui.hide_interact_progress()
+			return
+
+		_hold_timer += delta
+		var progress := clampf(_hold_timer / HOLD_DURATION, 0.0, 1.0)
+		ui.show_interact_progress(progress)
+
+		if _hold_timer >= HOLD_DURATION:
+			var target := _hold_target
+			var group := _get_interact_group(target)
+			_hold_target = null
+			_hold_timer = 0.0
+			ui.hide_interact_progress()
+
+			if group != null and _interact_groups.has(group):
+				var method_name: String = _interact_groups[group]
+				if has_method(method_name):
+					call(method_name, target)
+				elif target.has_method(method_name):
+					target.call(method_name)
+				get_viewport().set_input_as_handled()
+	elif _hold_timer > 0.0:
+		_hold_timer = 0.0
+		ui.hide_interact_progress()
+
+
+func _get_nearest_interactable() -> Node2D:
+	if player == null:
+		return null
+	var best_node: Node2D = null
+	var best_distance: float = INF
+	for group in _interact_groups.keys():
+		for candidate in get_tree().get_nodes_in_group(group):
+			if not candidate is Node2D:
+				continue
+			var interactable := candidate as Node2D
+			if not interactable.visible or not bool(interactable.get("player_near")):
+				continue
+			var distance: float = player.global_position.distance_squared_to(interactable.global_position)
+			if distance < best_distance:
+				best_distance = distance
+				best_node = interactable
+	return best_node
+
+
+func _get_interact_group(node: Node2D) -> String:
+	for group in _interact_groups.keys():
+		if node.is_in_group(group):
+			return group
+	return ""
+
+
+func use_portal(portal: Node2D) -> void:
+	var target_map: String = str(portal.get("target_map_id"))
+	var spawn_val = portal.get("target_spawn")
+	var target_spawn: Vector2 = spawn_val if spawn_val != null else Vector2.ZERO
+	if target_map.is_empty():
+		return
+	change_map(target_map, target_spawn)
+
+
 func change_map(map_id: String, spawn_position: Vector2) -> void:
 	if not maps.has(map_id):
 		return
@@ -121,16 +225,17 @@ func accept_quest(board: Area2D) -> void:
 	var quest: Dictionary = _active_quest()
 	var board_id: String = str(board.get("board_id"))
 	if quest_accepted:
-		SceneTransition.play_fail_sfx()
+		_st.call("play_fail_sfx")
 		ui.flash_prompt("Bạn đang theo hợp đồng hiện tại")
 		return
 	if quest.get("giver", "") != board_id:
-		SceneTransition.play_fail_sfx()
+		_st.call("play_fail_sfx")
 		ui.flash_prompt("Hợp đồng hiện tại không nhận ở đây")
 		return
 	quest_accepted = true
 	board.call("accept_feedback")
-	SceneTransition.play_success_sfx()
+	_st.call("play_success_sfx")
+	player.shake(0.15, 3.0)
 	ui.show_map_banner(str(_current_map()["name"]), "Đã nhận: %s" % quest["title"])
 	ui.show_dialogue(str(quest["giver_name"]), str(quest.get("dialogue", "Nhận hợp đồng rồi nhé, đi đúng tuyến và quay lại khi hoàn tất.")))
 	_refresh_ui()
@@ -218,7 +323,7 @@ func _execute_purchase(merchant: Area2D, final_price: int) -> void:
 	var stock: int = int(merchant.get("stock"))
 	
 	if money < final_price:
-		SceneTransition.play_fail_sfx()
+		_st.call("play_fail_sfx")
 		ui.show_dialogue(merchant_name, "Ủa tiền đâu con ơi? Kiếm thêm tiền rồi quay lại ghe cô nghen!", true)
 		player.input_blocked = false
 		return
@@ -229,10 +334,13 @@ func _execute_purchase(merchant: Area2D, final_price: int) -> void:
 	cargo[product_name] = get_cargo_count(product_name) + 1
 	merchant.call("purchase_feedback")
 	
-	SceneTransition.play_success_sfx()
+	_st.call("play_success_sfx")
 	var thank_you := "Cảm ơn con nhiều nghen! Ghe cô lúc nào cũng tươi ngon hết á."
 	ui.show_dialogue(merchant_name, thank_you, true)
 	ui.flash_prompt("Đã mua %s với giá %dk" % [product_name, final_price])
+	player.animate_cargo_load(cargo, product_name)
+	player.shake(0.18, 4.0)
+	player.spawn_particles(Color(0.38, 1.0, 0.55), 6)
 	_refresh_ui()
 	player.input_blocked = false
 
@@ -261,7 +369,7 @@ func _negotiate_bargain(merchant: Area2D, original_price: int, bargain_price: in
 		})
 		ui.show_choices(choices)
 	else:
-		SceneTransition.play_fail_sfx()
+		_st.call("play_fail_sfx")
 		var fail_msg := "Trời ơi bớt dữ vậy con! Hàng ngon vậy bán giá đó cô lỗ chết. Đúng %dk cô mới bán được nà." % original_price
 		ui.show_dialogue(merchant_name, fail_msg, false)
 		
@@ -288,14 +396,14 @@ func _cancel_purchase_polite(merchant_name: String) -> void:
 func _cancel_purchase_with_sulk(merchant: Area2D) -> void:
 	var merchant_name: String = str(merchant.get("merchant_name"))
 	merchant.set("is_sulking", true)
-	SceneTransition.play_fail_sfx()
+	_st.call("play_fail_sfx")
 	var cancel_msg := "Trời ơi, trả giá đã đời rồi hông mua hả con? Đốt phong long vía dữ nha!"
 	ui.show_dialogue(merchant_name, cancel_msg, true)
 	player.input_blocked = false
 
 
 func _cancel_purchase_sulky_dismissal(merchant_name: String) -> void:
-	SceneTransition.play_fail_sfx()
+	_st.call("play_fail_sfx")
 	var cancel_msg := "Đi đi, chừng nào mua đúng giá thì nói chuyện với cô!"
 	ui.show_dialogue(merchant_name, cancel_msg, true)
 	player.input_blocked = false
@@ -314,27 +422,32 @@ func complete_delivery(point: Area2D) -> void:
 	print("Has Required Products: ", _has_required_products(quest))
 	
 	if not quest_accepted:
-		SceneTransition.play_fail_sfx()
+		_st.call("play_fail_sfx")
 		ui.flash_prompt("Hãy nhận nhiệm vụ trước tại điểm điều phối")
 		return
 	if quest.get("map", "") != current_map_id:
-		SceneTransition.play_fail_sfx()
+		_st.call("play_fail_sfx")
 		ui.flash_prompt("Đơn này ở khu vực khác")
 		return
 	if not quest.has("delivery") or quest["delivery"] != point_name:
-		SceneTransition.play_fail_sfx()
+		_st.call("play_fail_sfx")
 		ui.flash_prompt("Đây chưa phải điểm giao của nhiệm vụ hiện tại")
 		return
 	if not _has_required_products(quest):
-		SceneTransition.play_fail_sfx()
+		_st.call("play_fail_sfx")
 		ui.flash_prompt("Chưa đủ hàng cho đơn này")
 		return
 
 	_consume_required_products(quest)
+	player.animate_cargo_unload(cargo, quest.get("products", {}))
 	money += int(quest["reward"])
 	reputation += int(quest["rep"])
 	point.call("delivery_feedback")
-	SceneTransition.play_success_sfx()
+	_st.call("play_success_sfx")
+	player.shake(0.3, 8.0)
+	ui.show_celebration("Giao hàng thành công!", "+%dk   Danh tiếng +%d" % [quest["reward"], quest["rep"]])
+	ui.show_reward_popup(int(quest["reward"]), int(quest["rep"]))
+	ui.reward_sparkle(Color(1.0, 0.83, 0.43))
 	ui.show_dialogue(point_name, "Nhận hàng thành công. Chuyến này làm khu chợ sáng thêm một nhịp rồi!")
 	ui.flash_prompt("+%dk, danh tiếng +%d" % [quest["reward"], quest["rep"]])
 	_advance_quest()
@@ -342,25 +455,28 @@ func complete_delivery(point: Area2D) -> void:
 
 func discover_spot(spot: Area2D) -> void:
 	if not quest_accepted:
-		SceneTransition.play_fail_sfx()
+		_st.call("play_fail_sfx")
 		ui.flash_prompt("Hãy nhận nhiệm vụ trước khi check-in")
 		return
 	var spot_id: String = str(spot.get("spot_id"))
 	var spot_name: String = str(spot.get("spot_name"))
 	if discovered_spots.has(spot_id):
-		SceneTransition.play_fail_sfx()
+		_st.call("play_fail_sfx")
 		ui.flash_prompt("Bạn đã check-in điểm này rồi")
 		return
 	discovered_spots[spot_id] = true
 	reputation += 1
 	spot.call("discovery_feedback")
-	SceneTransition.play_success_sfx()
+	_st.call("play_success_sfx")
+	player.shake(0.12, 2.5)
 	ui.flash_prompt("Đã chụp ảnh: %s" % spot_name)
 
 	var quest: Dictionary = _active_quest()
 	if quest.get("map", "") == current_map_id and quest.has("spots") and _count_quest_spots(quest) >= (quest["spots"] as Array).size():
 		money += int(quest["reward"])
 		reputation += int(quest["rep"])
+		ui.show_reward_popup(int(quest["reward"]), int(quest["rep"]))
+		ui.reward_sparkle(Color(0.62, 0.95, 1.0))
 		ui.flash_prompt("Hoàn thành quảng bá! +%dk" % quest["reward"])
 		ui.show_dialogue(str(quest["giver_name"]), "Ảnh đẹp lắm. Chiến dịch PR tối nay sẽ có chất miền Tây rõ hơn.")
 		_advance_quest()
@@ -371,11 +487,11 @@ func discover_spot(spot: Area2D) -> void:
 func buy_engine_upgrade(dock: Area2D) -> void:
 	var cost: int = 180 + (engine_level - 1) * 170
 	if engine_level >= 4:
-		SceneTransition.play_fail_sfx()
+		_st.call("play_fail_sfx")
 		ui.flash_prompt("Máy thuyền đã nâng cấp tối đa")
 		return
 	if money < cost:
-		SceneTransition.play_fail_sfx()
+		_st.call("play_fail_sfx")
 		ui.flash_prompt("Cần %dk để nâng cấp máy" % cost)
 		return
 	money -= cost
@@ -383,7 +499,8 @@ func buy_engine_upgrade(dock: Area2D) -> void:
 	player.max_speed += 42.0
 	player.acceleration += 115.0
 	dock.call("upgrade_feedback")
-	SceneTransition.play_success_sfx()
+	_st.call("play_success_sfx")
+	player.shake(0.25, 7.0)
 	ui.flash_prompt("Nâng cấp máy cấp %d" % engine_level)
 	_refresh_ui()
 
@@ -409,32 +526,14 @@ func hide_prompt() -> void:
 	ui.hide_prompt()
 
 
-func is_nearest_interactable(node: Node2D) -> bool:
-	if player == null or node == null or not node.visible:
-		return false
-	var groups: Array[String] = ["merchant_boat", "quest_hub", "delivery_point", "scenic_spot", "river_portal", "upgrade_dock"]
-	var best_node: Node2D = null
-	var best_distance: float = INF
-	for group in groups:
-		for candidate in get_tree().get_nodes_in_group(group):
-			if not candidate is Node2D:
-				continue
-			var area := candidate as Node2D
-			if not area.visible or not bool(area.get("player_near")):
-				continue
-			var distance: float = player.global_position.distance_squared_to(area.global_position)
-			if distance < best_distance:
-				best_distance = distance
-				best_node = area
-	return best_node == node
-
-
 func _advance_quest() -> void:
+	var quest := _active_quest()
 	active_quest += 1
 	quest_accepted = false
 	if active_quest >= quests.size():
-		SceneTransition.change_scene("res://scenes/WinScreen.tscn")
+		_st.call("change_scene", "res://scenes/WinScreen.tscn")
 		return
+	ui.show_celebration("Hoàn thành nhiệm vụ!", quest["title"])
 	_refresh_ui()
 
 
@@ -460,7 +559,11 @@ func _consume_required_products(quest: Dictionary) -> void:
 	var products: Dictionary = quest["products"] as Dictionary
 	for product in products.keys():
 		var key: String = str(product)
-		cargo[key] = get_cargo_count(key) - int(products[product])
+		var new_count: int = get_cargo_count(key) - int(products[product])
+		if new_count <= 0:
+			cargo.erase(key)
+		else:
+			cargo[key] = new_count
 
 
 func _count_quest_spots(quest: Dictionary) -> int:
@@ -505,6 +608,8 @@ func _refresh_ui() -> void:
 	var state: String = "Đang làm" if quest_accepted else "Chưa nhận"
 	ui.set_mission("[%s] %s: %s" % [state, quest["title"], quest["description"]])
 	ui.set_progress(_quest_progress_text())
+	player.sync_cargo_visuals(cargo)
+	_update_waypoints()
 
 
 func _configure_world() -> void:
@@ -664,6 +769,64 @@ func _scale_polygons(polygons: Array) -> Array[PackedVector2Array]:
 			polygon.append((point as Vector2) * WORLD_SCALE)
 		scaled.append(polygon)
 	return scaled
+
+
+func _update_waypoints() -> void:
+	var targets: Array = []
+	var quest := _active_quest()
+	var quest_map: String = str(quest.get("map", ""))
+	var on_quest_map := quest_map == current_map_id
+
+	if not quest_accepted:
+		for board_node in get_tree().get_nodes_in_group("quest_hub"):
+			if is_instance_valid(board_node) and board_node.visible:
+				var board_id: String = str(board_node.get("board_id"))
+				var board_name: String = str(board_node.get("board_name"))
+				if board_id == quest.get("giver", ""):
+					targets.append({"node": board_node, "color": Color(0.2, 0.9, 0.6), "label": board_name})
+					break
+	elif quest.has("spots") and on_quest_map:
+		var spot_ids: Array = quest["spots"] as Array
+		for spot_node in get_tree().get_nodes_in_group("scenic_spot"):
+			if not is_instance_valid(spot_node) or not spot_node.visible:
+				continue
+			var sid: String = str(spot_node.get("spot_id"))
+			if sid in spot_ids and not discovered_spots.has(sid):
+				targets.append({"node": spot_node, "color": Color(0.3, 0.7, 1.0), "label": str(spot_node.get("spot_name"))})
+				break
+	elif quest.has("products") and on_quest_map:
+		var needed := _get_remaining_products(quest)
+		if not needed.is_empty():
+			for merchant in get_tree().get_nodes_in_group("merchant_boat"):
+				if not is_instance_valid(merchant) or not merchant.visible:
+					continue
+				var prod: String = str(merchant.get("product_name"))
+				if prod in needed:
+					targets.append({"node": merchant, "color": Color(1.0, 0.72, 0.25), "label": str(merchant.get("merchant_name"))})
+					break
+		else:
+			for delivery in get_tree().get_nodes_in_group("delivery_point"):
+				if not is_instance_valid(delivery) or not delivery.visible:
+					continue
+				var dname: String = str(delivery.get("point_name"))
+				if dname == quest.get("delivery", ""):
+					targets.append({"node": delivery, "color": Color(0.2, 1.0, 0.4), "label": dname})
+					break
+
+	ui.update_waypoints(targets)
+
+
+func _get_remaining_products(quest: Dictionary) -> Dictionary:
+	var needed: Dictionary = {}
+	if not quest.has("products"):
+		return needed
+	var products: Dictionary = quest["products"] as Dictionary
+	for product in products.keys():
+		var have: int = get_cargo_count(str(product))
+		var need: int = int(products[product])
+		if have < need:
+			needed[product] = need - have
+	return needed
 
 
 func _map_tip() -> String:

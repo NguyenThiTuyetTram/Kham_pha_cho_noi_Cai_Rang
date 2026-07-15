@@ -29,12 +29,6 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	if player_near and event.is_action_pressed("interact") and get_tree().current_scene.is_nearest_interactable(self):
-		get_tree().current_scene.discover_spot(self)
-		get_viewport().set_input_as_handled()
-
-
 func discovery_feedback() -> void:
 	var tween := create_tween()
 	tween.tween_property(marker, "modulate", Color(1.0, 0.85, 0.25, 1.0), 0.15)
@@ -48,7 +42,7 @@ func reset_interaction_state() -> void:
 func _on_body_entered(body: Node2D) -> void:
 	if body.is_in_group("player"):
 		player_near = true
-		get_tree().current_scene.show_prompt("E chụp ảnh tại %s" % spot_name)
+		get_tree().current_scene.show_prompt("Giữ E chụp ảnh tại %s" % spot_name)
 
 
 func _on_body_exited(body: Node2D) -> void:

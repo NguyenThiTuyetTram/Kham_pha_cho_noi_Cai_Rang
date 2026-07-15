@@ -29,6 +29,7 @@ func _draw() -> void:
 				_draw_lantern(pos, t + float(item.get("phase", 0.0)))
 			"sign":
 				_draw_neon_sign(pos, str(item.get("label", "PRU213")), t)
+	_draw_floating_leaves(t)
 
 
 func _draw_lantern(pos: Vector2, t: float) -> void:
@@ -63,3 +64,26 @@ func _draw_neon_sign(pos: Vector2, label: String, t: float) -> void:
 	draw_rect(rect, Color(0.02, 0.04, 0.08, 0.78), true)
 	draw_rect(rect, Color(1.0, 0.28, 0.78, pulse), false, 3.0)
 	draw_string(ThemeDB.fallback_font, pos + Vector2(-54, 7), label, HORIZONTAL_ALIGNMENT_LEFT, 120, 18, Color(0.75, 1.0, 1.0, 0.95))
+
+
+func _draw_floating_leaves(t: float) -> void:
+	var leaf_positions := [
+		Vector2(150, 100), Vector2(520, 380), Vector2(900, 200),
+		Vector2(1300, 600), Vector2(1700, 300), Vector2(2100, 800),
+		Vector2(600, 1000), Vector2(1400, 1200), Vector2(2000, 900),
+	]
+	var leaf_colors := [
+		Color(0.38, 0.72, 0.24, 0.65),
+		Color(0.52, 0.78, 0.18, 0.6),
+		Color(0.30, 0.60, 0.20, 0.65),
+	]
+	for i in leaf_positions.size():
+		var base: Vector2 = leaf_positions[i] * world_scale
+		var phase := float(i) * 2.1
+		var dx := sin(t * 0.5 + phase) * 16.0
+		var dy := fmod(t * 8.0 + phase * 20.0, world_scale * 160.0) - world_scale * 20.0
+		var pos := base + Vector2(dx, dy)
+		var a: float = 0.4 + sin(t * 0.7 + phase) * 0.25
+		var c: Color = leaf_colors[i % leaf_colors.size()]
+		c.a = clampf(a, 0.0, 0.65)
+		draw_circle(pos, 2.5, c)

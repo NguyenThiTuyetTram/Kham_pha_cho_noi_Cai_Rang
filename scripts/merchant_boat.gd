@@ -21,27 +21,24 @@ func _ready() -> void:
 	_update_nameplate()
 	input_pickable = true
 	input_event.connect(_on_input_event)
+	bob_phase = randf_range(0, TAU)
 
 
 func _process(delta: float) -> void:
 	z_index = int(global_position.y / 10.0)
 	bob_phase += delta * 1.7
-	sprite.position.y = sin(bob_phase) * 3.0
-	sprite.rotation = sin(bob_phase * 0.72) * 0.025
+	sprite.position.y = sin(bob_phase) * 1.5
+	sprite.rotation = sin(bob_phase * 0.72) * 0.025 + sin(bob_phase * 0.35) * 0.035
 	sprite.scale = Vector2.ONE * (1.0 + sin(bob_phase * 1.3) * 0.012)
 	var target_alpha := 1.0 if player_near and stock > 0 else 0.0
 	fruit_icon.modulate.a = move_toward(fruit_icon.modulate.a, target_alpha, delta * 5.0)
 	if player_near:
 		fruit_icon.scale = Vector2.ONE * (0.92 + sin(Time.get_ticks_msec() / 170.0) * 0.06)
+		var p = get_tree().current_scene.player
+		if p:
+			sprite.flip_h = global_position.x > p.global_position.x
 	_update_nameplate()
 	queue_redraw()
-
-
-func _unhandled_input(event: InputEvent) -> void:
-	if player_near and event.is_action_pressed("interact") and get_tree().current_scene.is_nearest_interactable(self):
-		get_tree().current_scene.buy_from_merchant(self)
-		_update_prompt()
-		get_viewport().set_input_as_handled()
 
 
 func purchase_feedback() -> void:
@@ -72,7 +69,7 @@ func _update_prompt() -> void:
 	if stock <= 0:
 		get_tree().current_scene.show_prompt("%s đã hết hàng" % merchant_name)
 	else:
-		get_tree().current_scene.show_prompt("E Hỏi mua %s (%s còn %d)" % [product_name, merchant_name, stock])
+		get_tree().current_scene.show_prompt("Giữ E hỏi mua %s (%s còn %d)" % [product_name, merchant_name, stock])
 
 
 func _create_nameplate() -> void:

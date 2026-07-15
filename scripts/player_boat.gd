@@ -5,10 +5,30 @@ extends CharacterBody2D
 @export var friction := 560.0
 @export var river_bounds := Rect2(160, 120, 1600, 820)
 
-@onready var sprite: Sprite2D = $Sprite2D
+const CARGO_TEXTURE := preload("res://assets/fruit_icon.png")
+const MAX_CARGO_SLOTS := 8
+const CARGO_SCALE := 0.5
+const CARGO_POSITIONS: Array[Vector2] = [
+	Vector2(-32, -28),
+	Vector2(0, -32),
+	Vector2(32, -28),
+	Vector2(-24, -54),
+	Vector2(24, -54),
+	Vector2(-14, -76),
+	Vector2(14, -76),
+	Vector2(0, -95),
+]
+
+@onready var boat_hull: Sprite2D = $BoatHull
+@onready var cargo: Node2D = $Cargo
 @onready var camera: Camera2D = $Camera2D
 @onready var wake: CPUParticles2D = $Wake
+
+var cargo_sprites: Array[Sprite2D] = []
 var external_force := Vector2.ZERO
+var _shake_remaining := 0.0
+var _shake_intensity := 0.0
+@onready var _st: Node = get_node("/root/SceneTransition")
 var throttle_amount := 0.0
 var wake_strength := 0.0
 var visual_roll := 0.0
@@ -21,6 +41,17 @@ func _ready() -> void:
 	add_to_group("player")
 	wake.emitting = false
 	last_safe_position = global_position
+	_build_cargo_sprites()
+
+	for spr in cargo_sprites:
+		spr.visible = false
+		spr.modulate.a = 0.0
+
+	cargo.visible = false
+
+	print("Cargo node visible:", cargo.visible)
+	print("Cargo sprites:", cargo_sprites.size())
+
 	queue_redraw()
 
 
@@ -51,13 +82,18 @@ func _physics_process(delta: float) -> void:
 	if velocity.length() > 8.0:
 		var target_rotation: float = velocity.angle() + PI / 2.0
 		var turn_delta: float = wrapf(target_rotation - rotation, -PI, PI)
-		visual_roll = lerpf(visual_roll, clamp(turn_delta * -0.22, -0.12, 0.12), delta * 5.5)
+		visual_roll = lerpf(visual_roll, clamp(turn_delta * -0.28, -0.18, 0.18), delta * 6.0)
 		rotation = lerp_angle(rotation, target_rotation, delta * 7.0)
 	else:
 		visual_roll = lerpf(visual_roll, 0.0, delta * 4.0)
 
 	_update_visual_motion(delta, speed_ratio)
 	queue_redraw()
+
+
+func shake(duration: float = 0.25, intensity: float = 6.0) -> void:
+	_shake_remaining = duration
+	_shake_intensity = intensity
 
 
 func get_wake_strength() -> float:
@@ -173,19 +209,27 @@ func _resolve_dynamic_obstacles() -> void:
 func _update_visual_motion(delta: float, speed_ratio: float) -> void:
 	var bob: float = sin(visual_bob) * lerpf(1.2, 4.2, wake_strength)
 	var surge: float = sin(visual_bob * 1.6) * 1.6 * throttle_amount
-	sprite.position = Vector2(0.0, bob - surge)
-	sprite.rotation = visual_roll + sin(visual_bob * 0.72) * 0.018
-	sprite.scale = Vector2.ONE * (1.0 + sin(visual_bob * 1.25) * 0.01 * (0.3 + wake_strength))
+	boat_hull.position = Vector2(0.0, bob - surge)
+	boat_hull.rotation = visual_roll + sin(visual_bob * 0.72) * 0.018
+	boat_hull.scale = Vector2.ONE * (1.0 + sin(visual_bob * 1.25) * 0.01 * (0.3 + wake_strength))
 
-	camera.offset = camera.offset.lerp(velocity * 0.10, delta * 2.2)
+	var shake_offset := Vector2.ZERO
+	if _shake_remaining > 0.0:
+		_shake_remaining -= delta
+		var decay := clampf(_shake_remaining / 0.25, 0.0, 1.0)
+		shake_offset = Vector2(
+			randf_range(-_shake_intensity, _shake_intensity) * decay,
+			randf_range(-_shake_intensity, _shake_intensity) * decay
+		)
+	camera.offset = camera.offset.lerp(velocity * 0.10 + shake_offset, delta * 2.2)
 	wake.position = Vector2(0, 82 + speed_ratio * 18.0)
 	wake.emitting = wake_strength > 0.05
-	wake.amount = int(lerpf(16.0, 58.0, wake_strength))
-	wake.spread = lerpf(26.0, 54.0, wake_strength)
-	wake.initial_velocity_min = lerpf(10.0, 36.0, wake_strength)
-	wake.initial_velocity_max = lerpf(28.0, 82.0, wake_strength)
-	wake.scale_amount_min = lerpf(1.4, 2.4, wake_strength)
-	wake.scale_amount_max = lerpf(3.0, 7.2, wake_strength)
+	wake.amount = int(lerpf(20.0, 80.0, wake_strength))
+	wake.spread = lerpf(30.0, 65.0, wake_strength)
+	wake.initial_velocity_min = lerpf(12.0, 42.0, wake_strength)
+	wake.initial_velocity_max = lerpf(32.0, 100.0, wake_strength)
+	wake.scale_amount_min = lerpf(1.6, 3.2, wake_strength)
+	wake.scale_amount_max = lerpf(3.6, 10.0, wake_strength)
 
 
 func _draw() -> void:
@@ -199,3 +243,131 @@ func _draw_ellipse(center: Vector2, radius: Vector2, color: Color) -> void:
 		var angle: float = TAU * float(i) / 32.0
 		points.append(center + Vector2(cos(angle) * radius.x, sin(angle) * radius.y))
 	draw_colored_polygon(points, color)
+
+
+func _build_cargo_sprites() -> void:
+	for i in range(MAX_CARGO_SLOTS):
+		var spr := Sprite2D.new()
+		spr.texture = CARGO_TEXTURE
+		spr.position = CARGO_POSITIONS[i]
+		spr.scale = Vector2(CARGO_SCALE, CARGO_SCALE)
+		spr.visible = false
+		spr.modulate.a = 0.0
+		spr.z_index = 5
+		cargo.add_child(spr)
+		cargo_sprites.append(spr)
+
+
+func sync_cargo_visuals(cargo: Dictionary) -> void:
+	var total := 0
+	for key in cargo.keys():
+		total += int(cargo[key])
+	total = mini(total, MAX_CARGO_SLOTS)
+	for i in range(MAX_CARGO_SLOTS):
+		cargo_sprites[i].visible = i < total
+		cargo_sprites[i].scale = Vector2(CARGO_SCALE, CARGO_SCALE)
+
+
+func animate_cargo_load(cargo: Dictionary, product_name: String) -> void:
+	var prev_visible := 0
+	for spr in cargo_sprites:
+		if spr.visible:
+			prev_visible += 1
+
+	sync_cargo_visuals(cargo)
+	set_has_cargo(true)
+
+	var new_sprites: Array[Sprite2D] = []
+	for i in range(prev_visible, MAX_CARGO_SLOTS):
+		if cargo_sprites[i].visible:
+			new_sprites.append(cargo_sprites[i])
+
+	for spr in new_sprites:
+		spr.scale = Vector2.ZERO
+		var tween := create_tween()
+		tween.set_parallel(true)
+		tween.tween_property(spr, "scale", Vector2(CARGO_SCALE, CARGO_SCALE), 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tween.tween_property(spr, "modulate:a", 1.0, 0.35)
+
+	_st.call("play_load_sfx")
+	_show_floating_text("+1 " + product_name, Color(0.38, 1.0, 0.55))
+
+
+func animate_cargo_unload(cargo: Dictionary, products: Dictionary) -> void:
+	var has_visible := false
+	for spr in cargo_sprites:
+		if spr.visible:
+			has_visible = true
+			break
+
+	if not has_visible:
+		sync_cargo_visuals(cargo)
+		return
+
+	for spr in cargo_sprites:
+		if spr.visible:
+			var tween := create_tween()
+			tween.set_parallel(true)
+			tween.tween_property(spr, "scale", Vector2.ZERO, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+			tween.tween_property(spr, "modulate:a", 0.0, 0.2)
+
+	_st.call("play_unload_sfx")
+
+	var parts: PackedStringArray = PackedStringArray()
+	for key in products.keys():
+		parts.append("%s x%s" % [str(key), str(products[key])])
+	_show_floating_text("Đã giao: " + ", ".join(parts), Color(1.0, 0.82, 0.38))
+
+	await get_tree().create_timer(0.35).timeout
+	sync_cargo_visuals(cargo)
+	for spr in cargo_sprites:
+		spr.modulate.a = 1.0
+
+	if cargo.is_empty():
+		set_has_cargo(false)
+
+
+func _show_floating_text(text: String, color: Color) -> void:
+	var label := Label.new()
+	label.text = text
+	label.add_theme_font_size_override("font_size", 18)
+	label.add_theme_color_override("font_color", color)
+	label.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.85))
+	label.add_theme_constant_override("outline_size", 5)
+	label.z_index = 20
+	label.position = Vector2(-80, -130)
+	boat_hull.add_child(label)
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(label, "position:y", label.position.y - 42, 0.9).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.tween_property(label, "modulate:a", 0.0, 0.9).set_delay(0.15)
+	tween.finished.connect(label.queue_free)
+
+
+func set_has_cargo(state: bool) -> void:
+	if not cargo:
+		return
+
+	cargo.visible = state
+
+	for spr in cargo_sprites:
+		spr.visible = state
+		spr.modulate.a = 1.0 if state else 0.0
+
+
+func spawn_particles(color: Color, count: int = 8) -> void:
+	for i in range(count):
+		var p := ColorRect.new()
+		p.size = Vector2(5, 5)
+		p.color = color
+		var offset := Vector2(randf_range(-40, 40), randf_range(-60, 20))
+		p.position = offset - Vector2(2.5, 2.5)
+		boat_hull.add_child(p)
+		var angle := TAU * float(i) / float(count) + randf_range(-0.2, 0.2)
+		var dist := randf_range(40, 90)
+		var target := Vector2(cos(angle), sin(angle)) * dist
+		var ptween := create_tween()
+		ptween.set_parallel(true)
+		ptween.tween_property(p, "position", offset + target, 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		ptween.tween_property(p, "modulate:a", 0.0, 0.5)
+		ptween.finished.connect(p.queue_free)

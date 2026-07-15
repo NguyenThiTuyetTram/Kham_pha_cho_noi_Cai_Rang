@@ -27,12 +27,6 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	if player_near and event.is_action_pressed("interact") and get_tree().current_scene.is_nearest_interactable(self):
-		get_tree().current_scene.change_map(target_map_id, target_spawn)
-		get_viewport().set_input_as_handled()
-
-
 func setup(next_map: String, spawn: Vector2, label: String) -> void:
 	target_map_id = next_map
 	target_spawn = spawn
@@ -72,7 +66,7 @@ func _draw() -> void:
 func _on_body_entered(body: Node2D) -> void:
 	if body.is_in_group("player"):
 		player_near = true
-		get_tree().current_scene.show_prompt("E đi đến %s" % portal_name)
+		get_tree().current_scene.show_prompt("Giữ E đi đến %s" % portal_name)
 
 
 func _on_body_exited(body: Node2D) -> void:

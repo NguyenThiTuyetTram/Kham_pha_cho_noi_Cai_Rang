@@ -5,6 +5,9 @@ var map_label: Label
 var cargo_label: Label
 var reputation_label: Label
 var engine_label: Label
+var _money_color := Color(1.0, 0.83, 0.43)
+var _rep_color := Color(1.0, 0.55, 0.9)
+var _engine_color := Color(0.82, 0.92, 1.0)
 var mission_label: Label
 var progress_label: Label
 var prompt_panel: PanelContainer
@@ -17,6 +20,26 @@ var dialogue_speaker: Label
 var dialogue_text: Label
 var choices_container: HBoxContainer
 var dialogue_tween: Tween
+var _dialogue_full_text := ""
+var _dialogue_typewriter_tween: Tween
+var _dialogue_dismiss_enabled := false
+
+var _celebration_panel: PanelContainer
+var _celebration_title: Label
+var _celebration_subtitle: Label
+var _celebration_tween: Tween
+
+var _progress_bar: ColorRect
+var _progress_bg: ColorRect
+var _progress_visible := false
+
+var _waypoint_container: Node2D
+var _waypoint_arrows: Array[Control] = []
+var _prev_money := -1
+var _prev_reputation := -1
+var _prev_engine := -1
+var hud_visible := true
+var _stats_panel: PanelContainer
 
 func _ready() -> void:
 	_build_hud()
@@ -25,6 +48,15 @@ func _ready() -> void:
 func update_stats(money: int, cargo_text: String, reputation: int, engine_level: int, map_name: String) -> void:
 	if money_label == null:
 		return
+	if money != _prev_money:
+		_flash_label(money_label, _money_color)
+		_prev_money = money
+	if reputation != _prev_reputation:
+		_flash_label(reputation_label, _rep_color)
+		_prev_reputation = reputation
+	if engine_level != _prev_engine:
+		_flash_label(engine_label, _engine_color)
+		_prev_engine = engine_level
 	money_label.text = "Tiền: %dk" % money
 	map_label.text = "Khu vực: " + map_name
 	cargo_label.text = "Khoang hàng: " + cargo_text
@@ -72,27 +104,68 @@ func flash_prompt(text: String) -> void:
 func show_dialogue(speaker: String, text: String, auto_fade: bool = true) -> void:
 	if dialogue_tween:
 		dialogue_tween.kill()
+	if _dialogue_typewriter_tween:
+		_dialogue_typewriter_tween.kill()
 	clear_choices()
 	dialogue_speaker.text = speaker
-	dialogue_text.text = text
+	dialogue_text.text = ""
+	_dialogue_full_text = text
 	dialogue_panel.visible = true
 	dialogue_panel.modulate.a = 1.0
-	
+	_dialogue_dismiss_enabled = false
+
+	var type_speed: float = max(8, 48 - text.length() / 6)
+	_dialogue_typewriter_tween = create_tween()
+	_dialogue_typewriter_tween.set_parallel(false)
+	var char_count := text.length()
+	for i in range(1, char_count + 1):
+		_dialogue_typewriter_tween.tween_callback(func(): dialogue_text.text = text.left(i))
+		_dialogue_typewriter_tween.tween_interval(1.0 / type_speed)
+	_dialogue_typewriter_tween.tween_callback(func():
+		_dialogue_typewriter_tween = null
+	)
+
 	if auto_fade:
-		dialogue_tween = create_tween()
-		dialogue_tween.tween_property(dialogue_panel, "modulate:a", 1.0, 0.12)
-		dialogue_tween.tween_interval(2.5)
-		dialogue_tween.tween_property(dialogue_panel, "modulate:a", 0.0, 0.22)
-		await dialogue_tween.finished
-		if dialogue_panel.modulate.a == 0.0:
-			dialogue_panel.visible = false
+		await _dialogue_typewriter_tween.finished
+		_dialogue_dismiss_enabled = true
+		await _wait_for_dismiss()
+		hide_dialogue()
 
 
 func hide_dialogue() -> void:
 	if dialogue_tween:
 		dialogue_tween.kill()
+	if _dialogue_typewriter_tween:
+		_dialogue_typewriter_tween.kill()
+		_dialogue_typewriter_tween = null
+	_dialogue_dismiss_enabled = false
 	clear_choices()
 	dialogue_panel.visible = false
+
+
+func _wait_for_dismiss() -> void:
+	while _dialogue_dismiss_enabled and dialogue_panel.visible:
+		await get_tree().process_frame
+
+
+func _input(event: InputEvent) -> void:
+	if _dialogue_dismiss_enabled and dialogue_panel.visible:
+		var should_dismiss := false
+		if event.is_action_pressed("interact"):
+			should_dismiss = true
+		elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+			should_dismiss = true
+		elif event is InputEventKey and event.keycode == KEY_SPACE and not event.echo and event.pressed:
+			should_dismiss = true
+
+		if should_dismiss:
+			_dialogue_dismiss_enabled = false
+			if _dialogue_typewriter_tween:
+				_dialogue_typewriter_tween.kill()
+				_dialogue_typewriter_tween = null
+				dialogue_text.text = _dialogue_full_text
+			hide_dialogue()
+			get_viewport().set_input_as_handled()
 
 
 func show_choices(choices: Array) -> void:
@@ -148,16 +221,16 @@ func clear_choices() -> void:
 
 
 func _build_hud() -> void:
-	var stats_panel := PanelContainer.new()
-	stats_panel.position = Vector2(20, 18)
-	stats_panel.size = Vector2(430, 236)
-	stats_panel.custom_minimum_size = Vector2(430, 236)
-	stats_panel.add_theme_stylebox_override("panel", _panel_style(Color(0.015, 0.025, 0.045, 0.68), Color(0.0, 0.75, 0.84, 0.58)))
-	add_child(stats_panel)
+	_stats_panel = PanelContainer.new()
+	_stats_panel.position = Vector2(20, 18)
+	_stats_panel.size = Vector2(430, 236)
+	_stats_panel.custom_minimum_size = Vector2(430, 236)
+	_stats_panel.add_theme_stylebox_override("panel", _panel_style(Color(0.015, 0.025, 0.045, 0.68), Color(0.0, 0.75, 0.84, 0.58)))
+	add_child(_stats_panel)
 
 	var stats := VBoxContainer.new()
 	stats.add_theme_constant_override("separation", 4)
-	stats_panel.add_child(stats)
+	_stats_panel.add_child(stats)
 
 	money_label = _hud_label(21, Color(1.0, 0.83, 0.43))
 	map_label = _hud_label(16, Color(0.62, 0.95, 1.0))
@@ -166,13 +239,13 @@ func _build_hud() -> void:
 	engine_label = _hud_label(16, Color(0.82, 0.92, 1.0))
 	mission_label = _hud_label(15, Color(1.0, 0.94, 0.8))
 	progress_label = _hud_label(15, Color(0.72, 1.0, 0.92))
-	stats.add_child(money_label)
-	stats.add_child(map_label)
-	stats.add_child(cargo_label)
-	stats.add_child(reputation_label)
-	stats.add_child(engine_label)
-	stats.add_child(mission_label)
-	stats.add_child(progress_label)
+	stats.add_child(_hud_row(money_label, Color(1.0, 0.83, 0.43)))
+	stats.add_child(_hud_row(map_label, Color(0.62, 0.95, 1.0)))
+	stats.add_child(_hud_row(cargo_label, Color(0.82, 1.0, 0.96)))
+	stats.add_child(_hud_row(reputation_label, Color(1.0, 0.55, 0.9)))
+	stats.add_child(_hud_row(engine_label, Color(0.82, 0.92, 1.0)))
+	stats.add_child(_hud_row(mission_label, Color(1.0, 0.94, 0.8)))
+	stats.add_child(_hud_row(progress_label, Color(0.72, 1.0, 0.92)))
 
 	banner_panel = PanelContainer.new()
 	banner_panel.visible = false
@@ -250,12 +323,103 @@ func _build_hud() -> void:
 	dialogue_box.add_child(choices_container)
 
 
+	# ── Celebration panel ──
+	_celebration_panel = PanelContainer.new()
+	_celebration_panel.visible = false
+	_celebration_panel.size = Vector2(480, 140)
+	_celebration_panel.custom_minimum_size = Vector2(480, 140)
+	_celebration_panel.anchor_left = 0.5
+	_celebration_panel.anchor_right = 0.5
+	_celebration_panel.anchor_top = 0.5
+	_celebration_panel.anchor_bottom = 0.5
+	_celebration_panel.offset_left = -240
+	_celebration_panel.offset_right = 240
+	_celebration_panel.offset_top = -70
+	_celebration_panel.offset_bottom = 70
+	_celebration_panel.add_theme_stylebox_override("panel", _panel_style(Color(0.01, 0.03, 0.06, 0.92), Color(1.0, 0.72, 0.25, 0.9)))
+	add_child(_celebration_panel)
+
+	var cbox := VBoxContainer.new()
+	cbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	cbox.add_theme_constant_override("separation", 6)
+	_celebration_panel.add_child(cbox)
+
+	_celebration_title = _hud_label(28, Color(1.0, 0.85, 0.28))
+	_celebration_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cbox.add_child(_celebration_title)
+
+	_celebration_subtitle = _hud_label(18, Color(0.82, 1.0, 0.96))
+	_celebration_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cbox.add_child(_celebration_subtitle)
+
+	# ── Interaction progress bar ──
+	var progress_root := PanelContainer.new()
+	progress_root.visible = false
+	progress_root.name = "InteractProgress"
+	progress_root.size = Vector2(120, 12)
+	progress_root.custom_minimum_size = Vector2(120, 12)
+	progress_root.anchor_left = 0.5
+	progress_root.anchor_right = 0.5
+	progress_root.anchor_top = 1.0
+	progress_root.anchor_bottom = 1.0
+	progress_root.offset_left = -60
+	progress_root.offset_right = 60
+	progress_root.offset_top = -108
+	progress_root.offset_bottom = -96
+	progress_root.add_theme_stylebox_override("panel", _panel_style(Color(0.02, 0.015, 0.035, 0.7), Color(0.4, 0.6, 0.8, 0.4)))
+	add_child(progress_root)
+
+	_progress_bg = ColorRect.new()
+	_progress_bg.color = Color(0.05, 0.05, 0.1, 0.4)
+	_progress_bg.size = Vector2(112, 8)
+	_progress_bg.position = Vector2(4, 2)
+	progress_root.add_child(_progress_bg)
+
+	_progress_bar = ColorRect.new()
+	_progress_bar.color = Color(0.0, 0.9, 1.0, 0.9)
+	_progress_bar.size = Vector2(0, 8)
+	_progress_bar.position = Vector2(4, 2)
+	progress_root.add_child(_progress_bar)
+
+	# ── Waypoint container ──
+	_waypoint_container = Node2D.new()
+	_waypoint_container.name = "Waypoints"
+	add_child(_waypoint_container)
+
+
 func _hud_label(size: int, color: Color) -> Label:
 	var label := Label.new()
 	label.add_theme_font_size_override("font_size", size)
 	label.add_theme_color_override("font_color", color)
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	return label
+
+
+func _hud_icon(color: Color) -> PanelContainer:
+	var icon := PanelContainer.new()
+	icon.size = Vector2(10, 10)
+	icon.custom_minimum_size = Vector2(10, 10)
+	var style := StyleBoxFlat.new()
+	style.bg_color = color
+	style.corner_radius_top_left = 5
+	style.corner_radius_top_right = 5
+	style.corner_radius_bottom_left = 5
+	style.corner_radius_bottom_right = 5
+	style.border_width_left = 0
+	style.border_width_top = 0
+	style.border_width_right = 0
+	style.border_width_bottom = 0
+	icon.add_theme_stylebox_override("panel", style)
+	return icon
+
+
+func _hud_row(label: Label, color: Color) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	row.add_child(_hud_icon(color))
+	row.add_child(label)
+	return row
 
 
 func _panel_style(bg: Color, border: Color) -> StyleBoxFlat:
@@ -277,3 +441,279 @@ func _panel_style(bg: Color, border: Color) -> StyleBoxFlat:
 	style.shadow_color = Color(0.0, 0.65, 0.72, 0.12)
 	style.shadow_size = 8
 	return style
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.keycode == KEY_TAB and event.pressed and not event.echo:
+		toggle_hud()
+
+
+func toggle_hud() -> void:
+	hud_visible = not hud_visible
+	if _stats_panel:
+		_stats_panel.visible = hud_visible
+
+
+func _flash_label(label: Label, original: Color) -> void:
+	label.add_theme_color_override("font_color", Color.WHITE)
+	await get_tree().create_timer(0.15).timeout
+	if is_instance_valid(label):
+		label.add_theme_color_override("font_color", original)
+
+
+func show_reward_popup(money_gain: int, rep_gain: int, items_text: String = "") -> void:
+	var panel := PanelContainer.new()
+	panel.size = Vector2(300, 96)
+	panel.custom_minimum_size = Vector2(300, 96)
+	panel.anchor_left = 0.5
+	panel.anchor_right = 0.5
+	panel.anchor_top = 0.5
+	panel.anchor_bottom = 0.5
+	panel.offset_left = -150
+	panel.offset_right = 150
+	panel.offset_top = -48
+	panel.offset_bottom = 48
+	panel.add_theme_stylebox_override("panel", _panel_style(Color(0.01, 0.02, 0.05, 0.88), Color(1.0, 0.72, 0.25, 0.85)))
+	add_child(panel)
+
+	var vbox := VBoxContainer.new()
+	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	vbox.add_theme_constant_override("separation", 4)
+	panel.add_child(vbox)
+
+	if money_gain > 0:
+		var ml := _hud_label(22, Color(1.0, 0.83, 0.43))
+		ml.text = "+%dk" % money_gain
+		ml.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		vbox.add_child(ml)
+
+	if rep_gain > 0:
+		var rl := _hud_label(18, Color(1.0, 0.55, 0.9))
+		rl.text = "Danh tiếng +%d" % rep_gain
+		rl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		vbox.add_child(rl)
+
+	if items_text != "":
+		var il := _hud_label(16, Color(0.82, 1.0, 0.96))
+		il.text = items_text
+		il.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		vbox.add_child(il)
+
+	panel.modulate.a = 0.0
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(panel, "modulate:a", 1.0, 0.2)
+	tween.tween_property(panel, "offset_top", panel.offset_top - 20, 0.2)
+	tween.tween_interval(1.2)
+	tween.tween_property(panel, "modulate:a", 0.0, 0.3)
+	await tween.finished
+	if is_instance_valid(panel):
+		panel.queue_free()
+
+
+func reward_sparkle(color: Color = Color(1.0, 0.83, 0.43)) -> void:
+	var viewport := get_viewport()
+	if viewport == null:
+		return
+	var center := viewport.get_visible_rect().size / 2
+	for i in range(8):
+		var p := ColorRect.new()
+		p.size = Vector2(5, 5)
+		p.color = color
+		p.position = center - Vector2(2.5, 2.5)
+		add_child(p)
+		var angle := TAU * float(i) / 8.0
+		var dist := randf_range(50, 110)
+		var target := Vector2(cos(angle), sin(angle)) * dist
+		var tween := create_tween()
+		tween.set_parallel(true)
+		tween.tween_property(p, "position", center + target, 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		tween.tween_property(p, "modulate:a", 0.0, 0.5)
+		tween.finished.connect(p.queue_free)
+
+
+# ── Waypoint markers ──
+
+func update_waypoints(targets: Array) -> void:
+	_clear_waypoints()
+	for t in targets:
+		var target: Dictionary = t as Dictionary
+		var node: Node2D = target.get("node") as Node2D
+		if node == null or not is_instance_valid(node) or not node.visible:
+			continue
+		var color: Color = target.get("color", Color.WHITE)
+		var label_text: String = target.get("label", "")
+
+		var arrow := PanelContainer.new()
+		arrow.visible = false
+		arrow.size = Vector2(100, 28)
+		arrow.custom_minimum_size = Vector2(100, 28)
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(0.0, 0.0, 0.0, 0.55)
+		style.border_color = color
+		style.border_width_left = 1
+		style.border_width_top = 1
+		style.border_width_right = 1
+		style.border_width_bottom = 1
+		style.corner_radius_top_left = 4
+		style.corner_radius_top_right = 4
+		style.corner_radius_bottom_left = 4
+		style.corner_radius_bottom_right = 4
+		arrow.add_theme_stylebox_override("panel", style)
+
+		var inner := HBoxContainer.new()
+		inner.alignment = BoxContainer.ALIGNMENT_CENTER
+		arrow.add_child(inner)
+
+		var arrow_label := Label.new()
+		arrow_label.text = "▲"
+		arrow_label.add_theme_font_size_override("font_size", 14)
+		arrow_label.add_theme_color_override("font_color", color)
+		arrow_label.add_theme_constant_override("outline_size", 2)
+		arrow_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.7))
+		inner.add_child(arrow_label)
+
+		var dist_label := Label.new()
+		dist_label.text = label_text
+		dist_label.add_theme_font_size_override("font_size", 12)
+		dist_label.add_theme_color_override("font_color", color)
+		dist_label.add_theme_constant_override("outline_size", 2)
+		dist_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.7))
+		dist_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+		inner.add_child(dist_label)
+
+		arrow.set_meta("target_node", node)
+		arrow.set_meta("target_color", color)
+		add_child(arrow)
+		_waypoint_arrows.append(arrow)
+
+
+func _process(_delta: float) -> void:
+	_update_arrow_positions()
+
+
+func _update_arrow_positions() -> void:
+	var viewport := get_viewport()
+	if viewport == null:
+		return
+	var camera := viewport.get_camera_2d()
+	if camera == null:
+		return
+	var screen_size := viewport.get_visible_rect().size
+	var margin := 50.0
+
+	for arrow in _waypoint_arrows:
+		if not is_instance_valid(arrow):
+			continue
+		var target: Node2D = arrow.get_meta("target_node") as Node2D
+		if target == null or not is_instance_valid(target) or not target.visible:
+			arrow.visible = false
+			continue
+
+		var canvas_transform := camera.get_canvas_transform()
+		var screen_pos := canvas_transform * target.global_position
+
+		var on_screen := screen_pos.x >= -20 and screen_pos.x <= screen_size.x + 20 and screen_pos.y >= -20 and screen_pos.y <= screen_size.y + 20
+
+		if on_screen:
+			arrow.visible = false
+			continue
+
+		var center := screen_size / 2.0
+		var dir := screen_pos - center
+		var angle := atan2(dir.y, dir.x)
+
+		var edge_pos := Vector2(
+			clamp(screen_pos.x, margin, screen_size.x - margin),
+			clamp(screen_pos.y, margin, screen_size.y - margin)
+		)
+
+		if edge_pos.x <= margin and angle > -PI * 0.5 and angle < PI * 0.5:
+			edge_pos.x = margin
+		elif edge_pos.x >= screen_size.x - margin:
+			edge_pos.x = screen_size.x - margin
+		if edge_pos.y <= margin:
+			edge_pos.y = margin
+		elif edge_pos.y >= screen_size.y - margin:
+			edge_pos.y = screen_size.y - margin
+
+		arrow.position = edge_pos - arrow.size / 2.0
+
+		var arrow_label := arrow.get_child(0).get_child(0) as Label
+		if arrow_label:
+			var arrow_char := "^"
+			if abs(angle) < PI * 0.25:
+				arrow_char = "→"
+			elif abs(angle) > PI * 0.75:
+				arrow_char = "←"
+			elif angle > 0:
+				arrow_char = "↓"
+			else:
+				arrow_char = "↑"
+			if abs(angle) > PI * 0.25 and abs(angle) < PI * 0.75:
+				if angle > 0:
+					arrow_char = "↓"
+				else:
+					arrow_char = "↑"
+			arrow_label.text = arrow_char
+
+		var dist := int(target.global_position.distance_to(camera.global_position) / 10.0)
+		var dist_label := arrow.get_child(0).get_child(1) as Label
+		if dist_label:
+			dist_label.text = str(dist) + "m"
+
+		arrow.visible = true
+
+
+func _clear_waypoints() -> void:
+	for arrow in _waypoint_arrows:
+		if is_instance_valid(arrow):
+			arrow.queue_free()
+	_waypoint_arrows.clear()
+
+
+# ── Interaction progress ──
+
+func show_interact_progress(progress: float) -> void:
+	if _progress_bar == null:
+		return
+	var root := _progress_bar.get_parent() as Control
+	if root:
+		root.visible = true
+	_progress_bar.size.x = progress * 112.0
+	_progress_visible = true
+
+
+func hide_interact_progress() -> void:
+	if _progress_bar == null:
+		return
+	var root := _progress_bar.get_parent() as Control
+	if root:
+		root.visible = false
+	_progress_bar.size.x = 0.0
+	_progress_visible = false
+
+
+# ── Quest completion celebration ──
+
+func show_celebration(title: String, subtitle: String) -> void:
+	if _celebration_panel == null:
+		return
+	if _celebration_tween:
+		_celebration_tween.kill()
+	_celebration_title.text = title
+	_celebration_subtitle.text = subtitle
+	_celebration_panel.visible = true
+	_celebration_panel.modulate.a = 0.0
+	_celebration_panel.scale = Vector2(0.6, 0.6)
+
+	_celebration_tween = create_tween()
+	_celebration_tween.set_parallel(true)
+	_celebration_tween.tween_property(_celebration_panel, "modulate:a", 1.0, 0.25)
+	_celebration_tween.tween_property(_celebration_panel, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_celebration_tween.tween_interval(1.6)
+	_celebration_tween.tween_property(_celebration_panel, "modulate:a", 0.0, 0.3)
+	_celebration_tween.tween_property(_celebration_panel, "scale", Vector2(0.8, 0.8), 0.3)
+	await _celebration_tween.finished
+	_celebration_panel.visible = false
+	_celebration_panel.scale = Vector2.ONE

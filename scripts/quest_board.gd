@@ -27,6 +27,7 @@ func _ready() -> void:
 	_update_nameplate()
 	input_pickable = true
 	input_event.connect(_on_input_event)
+	bob_phase = randf_range(0, TAU)
 
 
 func _process(delta: float) -> void:
@@ -38,16 +39,14 @@ func _process(delta: float) -> void:
 	marker.rotation = sin(bob_phase * 2.7) * 0.05
 	quest_boat.position = boat_base_position + Vector2(0.0, sin(bob_phase * 2.1) * 3.2)
 	quest_boat.rotation = sin(bob_phase * 1.35) * 0.025
-	npc.position = npc_base_position + Vector2(0.0, sin(bob_phase * 1.7) * 2.0)
-	npc.rotation = sin(bob_phase * 1.2) * 0.018
+	npc.position = npc_base_position + Vector2(0.0, sin(bob_phase * 1.7) * 1.0)
+	npc.rotation = sin(bob_phase * 0.45) * 0.035
+	if player_near:
+		var p = get_tree().current_scene.player
+		if p:
+			npc.flip_h = global_position.x > p.global_position.x
 	_update_nameplate()
 	queue_redraw()
-
-
-func _unhandled_input(event: InputEvent) -> void:
-	if player_near and event.is_action_pressed("interact") and get_tree().current_scene.is_nearest_interactable(self):
-		get_tree().current_scene.accept_quest(self)
-		get_viewport().set_input_as_handled()
 
 
 func setup(id: String, label: String, role: String, visuals: Dictionary = {}) -> void:
@@ -134,7 +133,7 @@ func _draw_ellipse(center: Vector2, radius: Vector2, color: Color) -> void:
 func _on_body_entered(body: Node2D) -> void:
 	if body.is_in_group("player"):
 		player_near = true
-		get_tree().current_scene.show_prompt("E nhận nhiệm vụ tại %s" % board_name)
+		get_tree().current_scene.show_prompt("Giữ E nhận nhiệm vụ tại %s" % board_name)
 
 
 func _on_body_exited(body: Node2D) -> void:

@@ -6,6 +6,7 @@ extends Control
 const GAME_SCENE := "res://scenes/Game.tscn"
 const HOW_TO_PLAY_SCENE := "res://scenes/HowToPlay.tscn"
 const MAIN_MENU_SCENE := "res://scenes/MainMenu.tscn"
+@onready var _st: Node = get_node("/root/SceneTransition")
 
 func _ready() -> void:
 	_build_screen()
@@ -111,15 +112,15 @@ func _make_button(text: String, callback: Callable) -> Button:
 
 
 func _play() -> void:
-	SceneTransition.change_scene(GAME_SCENE)
+	_st.call("change_scene", GAME_SCENE)
 
 
 func _how_to_play() -> void:
-	SceneTransition.change_scene(HOW_TO_PLAY_SCENE)
+	_st.call("change_scene", HOW_TO_PLAY_SCENE)
 
 
 func _go_main_menu() -> void:
-	SceneTransition.change_scene(MAIN_MENU_SCENE)
+	_st.call("change_scene", MAIN_MENU_SCENE)
 
 
 func _quit() -> void:

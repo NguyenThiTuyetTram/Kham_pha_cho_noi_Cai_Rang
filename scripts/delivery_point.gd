@@ -21,6 +21,7 @@ func _ready() -> void:
 	_update_nameplate()
 	input_pickable = true
 	input_event.connect(_on_input_event)
+	bob_phase = randf_range(0, TAU)
 
 
 func _process(delta: float) -> void:
@@ -30,17 +31,14 @@ func _process(delta: float) -> void:
 	marker.position = marker_base_position + Vector2(0.0, sin(bob_phase * 2.4) * 2.0)
 	marker.rotation = sin(bob_phase * 2.0) * 0.06
 	marker.scale = Vector2.ONE * (0.92 + attention * 0.08 + sin(bob_phase * 4.5) * 0.04)
-	npc.position = npc_base_position + Vector2(0.0, sin(bob_phase * 1.55) * 2.2)
-	npc.rotation = sin(bob_phase * 1.1) * 0.016
+	npc.position = npc_base_position + Vector2(0.0, sin(bob_phase * 1.55) * 1.0)
+	npc.rotation = sin(bob_phase * 0.45) * 0.035
+	if player_near:
+		var p = get_tree().current_scene.player
+		if p:
+			npc.flip_h = global_position.x > p.global_position.x
 	_update_nameplate()
 	queue_redraw()
-
-
-func _unhandled_input(event: InputEvent) -> void:
-	if player_near and event.is_action_pressed("interact") and get_tree().current_scene.is_nearest_interactable(self):
-		get_tree().current_scene.complete_delivery(self)
-		_update_prompt()
-		get_viewport().set_input_as_handled()
 
 
 func delivery_feedback() -> void:
@@ -76,7 +74,7 @@ func _update_prompt() -> void:
 	
 	if current_delivery_name == point_name:
 		if can_deliver:
-			get_tree().current_scene.show_prompt("E giao hàng tại %s" % point_name)
+			get_tree().current_scene.show_prompt("Giữ E giao hàng tại %s" % point_name)
 		else:
 			get_tree().current_scene.show_prompt("%s cần đúng hàng trong nhiệm vụ" % point_name)
 	else:
