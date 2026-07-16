@@ -20,10 +20,22 @@ position = Vector2(-58, -38)
 texture = ExtResource("3")
 scale = Vector2(0.72, 0.72)
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
+[node name="Sprite2D" type="Node2D" parent="."]
 position = Vector2(76, -72)
-texture = ExtResource("1")
-scale = Vector2(0.48, 0.48)
+scale = Vector2(1, 1)
+
+[node name="Label" type="Label" parent="Sprite2D"]
+offset_left = -20.0
+offset_top = -30.0
+offset_right = 20.0
+offset_bottom = 30.0
+theme_override_colors/font_color = Color(1, 0.2, 0.2, 1)
+theme_override_colors/font_outline_color = Color(1, 1, 1, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 64
+text = "!"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_1")

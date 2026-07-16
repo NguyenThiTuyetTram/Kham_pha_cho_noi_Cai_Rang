@@ -15,8 +15,6 @@ func _ready() -> void:
 	marker.modulate = Color(0.35, 1.0, 1.0, 0.95)
 	_create_nameplate()
 	_update_nameplate()
-	input_pickable = true
-	input_event.connect(_on_input_event)
 
 
 func _process(delta: float) -> void:
@@ -49,18 +47,6 @@ func _on_body_exited(body: Node2D) -> void:
 	if body.is_in_group("player"):
 		player_near = false
 		get_tree().current_scene.hide_prompt()
-
-
-func _on_input_event(viewport: Node, event: InputEvent, shape_idx: int) -> void:
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		var scene = get_tree().current_scene
-		if scene.player != null and not scene.player.input_blocked:
-			var dist: float = global_position.distance_to(scene.player.global_position)
-			if dist <= 680.0:
-				scene.discover_spot(self)
-				get_viewport().set_input_as_handled()
-			else:
-				scene.ui.flash_prompt("Lái ghe lại gần hơn để check-in chụp ảnh")
 
 
 func _create_nameplate() -> void:

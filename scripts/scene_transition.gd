@@ -27,7 +27,7 @@ func _ready() -> void:
 	if bgm_menu != null and (bgm_menu.has_method("set_loop") or "loop" in bgm_menu):
 		bgm_menu.set("loop", true)
 		
-	bgm_game = load("res://bgm_song_nuoc.mp3")
+	bgm_game = load("res://bgm_chiec_ao_ba_ba.mp3")
 	if bgm_game != null and (bgm_game.has_method("set_loop") or "loop" in bgm_game):
 		bgm_game.set("loop", true)
 		
@@ -44,7 +44,7 @@ func change_scene(scene_path: String) -> void:
 	get_tree().change_scene_to_file(scene_path)
 	
 	if scene_path == "res://scenes/Game.tscn":
-		play_music(bgm_game)
+		music_player.stop()
 	else:
 		play_music(bgm_menu)
 		

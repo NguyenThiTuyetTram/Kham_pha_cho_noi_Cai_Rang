@@ -2,6 +2,7 @@ extends CanvasLayer
 
 var money_label: Label
 var map_label: Label
+var time_label: Label
 var cargo_label: Label
 var reputation_label: Label
 var engine_label: Label
@@ -21,8 +22,17 @@ var dialogue_text: Label
 var choices_container: HBoxContainer
 var dialogue_tween: Tween
 var _dialogue_full_text := ""
+var _dialogue_dismiss_enabled := true
 var _dialogue_typewriter_tween: Tween
-var _dialogue_dismiss_enabled := false
+var voice_player: AudioStreamPlayer
+
+var bargain_panel: PanelContainer
+var bargain_indicator: ColorRect
+var bargain_target: ColorRect
+var is_bargaining := false
+var bargain_speed := 300.0
+var bargain_dir := 1.0
+var bargain_callback: Callable
 
 var _celebration_panel: PanelContainer
 var _celebration_title: Label
@@ -41,8 +51,110 @@ var _prev_engine := -1
 var hud_visible := true
 var _stats_panel: PanelContainer
 
+var intro_panel: ColorRect
+var intro_text: Label
+var _intro_tween: Tween
+
 func _ready() -> void:
+	voice_player = AudioStreamPlayer.new()
+	add_child(voice_player)
 	_build_hud()
+	_build_bargain_ui()
+	_build_intro_ui()
+
+func _build_intro_ui() -> void:
+	intro_panel = ColorRect.new()
+	intro_panel.color = Color.BLACK
+	intro_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	intro_panel.visible = false
+	intro_panel.z_index = 100
+	add_child(intro_panel)
+
+	intro_text = Label.new()
+	intro_text.add_theme_font_size_override("font_size", 28)
+	intro_text.add_theme_color_override("font_color", Color(0.9, 0.9, 0.95))
+	intro_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	intro_text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	intro_text.autowrap_mode = TextServer.AUTOWRAP_WORD
+	intro_text.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	intro_text.offset_left = 150
+	intro_text.offset_right = -150
+	intro_panel.add_child(intro_text)
+
+func play_intro_cutscene(text: String, callback: Callable) -> void:
+	intro_panel.visible = true
+	intro_panel.modulate.a = 1.0
+	intro_text.text = ""
+	_play_voice_for_text(text, "")
+	
+	var type_speed: float = 28.0
+	if _intro_tween: _intro_tween.kill()
+	_intro_tween = create_tween()
+	_intro_tween.set_parallel(false)
+	var char_count := text.length()
+	for i in range(1, char_count + 1):
+		_intro_tween.tween_callback(func(): intro_text.text = text.left(i))
+		_intro_tween.tween_interval(1.0 / type_speed)
+	_intro_tween.tween_interval(3.0)
+	_intro_tween.tween_property(intro_panel, "modulate:a", 0.0, 1.5)
+	_intro_tween.tween_callback(func():
+		intro_panel.visible = false
+		intro_panel.modulate.a = 1.0
+		if callback: callback.call()
+	)
+
+func _process(delta: float) -> void:
+	_update_arrow_positions()
+	if is_bargaining and bargain_indicator != null:
+		bargain_indicator.position.x += bargain_speed * bargain_dir * delta
+		if bargain_indicator.position.x <= 20:
+			bargain_indicator.position.x = 20
+			bargain_dir = 1.0
+		elif bargain_indicator.position.x >= 372:
+			bargain_indicator.position.x = 372
+			bargain_dir = -1.0
+
+func _play_voice_for_text(text: String, speaker: String) -> void:
+	return
+	if voice_player == null: return
+	var stream: AudioStream = null
+	# Based on speaker or text content
+	if "Ở gần khu chợ nổi Cái Răng" in text: stream = load("res://assets/voice/narrator_intro.mp3")
+	elif "Tuần sau là hạn chót" in text: stream = load("res://assets/voice/intro_teacher.mp3")
+	elif "Dạ con đang cố" in text: stream = load("res://assets/voice/intro_player.mp3")
+	elif "Bánh dân gian nay ngon" in text: stream = load("res://assets/voice/merchant_ditu.mp3")
+	elif "Nước dừa tươi rói" in text: stream = load("res://assets/voice/merchant_chubay.mp3")
+	elif "Trái cây miệt vườn mới hái" in text: stream = load("res://assets/voice/merchant_anhhai.mp3")
+	elif "Bún riêu nóng hổi" in text: stream = load("res://assets/voice/merchant_diba.mp3")
+	elif "Đêm nay khách đông" in text: stream = load("res://assets/voice/quest_1.mp3")
+	elif "Khách sắp xuống bến" in text: stream = load("res://assets/voice/quest_2.mp3")
+	elif "Đi Kênh Vườn Trái Cây" in text: stream = load("res://assets/voice/quest_3.mp3")
+	elif "Trời ơi bớt dữ" in text: stream = load("res://assets/voice/bargain_fail_female.mp3")
+	elif "Ép giá chú quá" in text: stream = load("res://assets/voice/bargain_fail_male.mp3")
+	elif "bán mở hàng lấy thảo" in text: stream = load("res://assets/voice/bargain_good_female.mp3")
+	elif "Thấy con ngoan chú bớt" in text: stream = load("res://assets/voice/bargain_good_male.mp3")
+	elif "Mắt con lẹ quá trời" in text: stream = load("res://assets/voice/bargain_perfect_female.mp3")
+	elif "Hay quá con trai" in text: stream = load("res://assets/voice/bargain_perfect_male.mp3")
+	elif "Cảm ơn con nhen" in text: stream = load("res://assets/voice/delivery_success.mp3")
+	elif "tiền đâu con ơi" in text: stream = load("res://assets/voice/not_enough_money.mp3")
+	elif "giá đó cô lỗ chết" in text: stream = load("res://assets/voice/bargain_fail_female.mp3")
+	
+	if stream:
+		voice_player.stream = stream
+		voice_player.play()
+
+func update_time_ui(day: int, hour: int, minute: int) -> void:
+	if time_label == null:
+		return
+	var period = "AM"
+	var display_hour = hour
+	if display_hour >= 12:
+		period = "PM"
+		if display_hour > 12:
+			display_hour -= 12
+	elif display_hour == 0:
+		display_hour = 12
+	time_label.text = "Ngày %d/7 - %02d:%02d %s" % [day, display_hour, minute, period]
 
 
 func update_stats(money: int, cargo_text: String, reputation: int, engine_level: int, map_name: String) -> void:
@@ -58,18 +170,22 @@ func update_stats(money: int, cargo_text: String, reputation: int, engine_level:
 		_flash_label(engine_label, _engine_color)
 		_prev_engine = engine_level
 	money_label.text = "Tiền: %dk" % money
-	map_label.text = "Khu vực: " + map_name
 	cargo_label.text = "Khoang hàng: " + cargo_text
 	reputation_label.text = "Danh tiếng: %d" % reputation
 	engine_label.text = "Máy thuyền: cấp %d" % engine_level
+	map_label.text = "Khu vực: " + map_name
 
 
 func set_mission(text: String) -> void:
+	if mission_label == null:
+		return
 	mission_label.text = "Nhiệm vụ: " + text
 
 
 func set_progress(text: String) -> void:
-	progress_label.text = "Tiến độ: " + text
+	if progress_label == null:
+		return
+	progress_label.text = text
 
 
 func show_map_banner(title: String, subtitle: String) -> void:
@@ -113,8 +229,10 @@ func show_dialogue(speaker: String, text: String, auto_fade: bool = true) -> voi
 	dialogue_panel.visible = true
 	dialogue_panel.modulate.a = 1.0
 	_dialogue_dismiss_enabled = false
+	
+	_play_voice_for_text(text, speaker)
 
-	var type_speed: float = max(8, 48 - text.length() / 6)
+	var type_speed: float = 28.0
 	_dialogue_typewriter_tween = create_tween()
 	_dialogue_typewriter_tween.set_parallel(false)
 	var char_count := text.length()
@@ -138,6 +256,8 @@ func hide_dialogue() -> void:
 	if _dialogue_typewriter_tween:
 		_dialogue_typewriter_tween.kill()
 		_dialogue_typewriter_tween = null
+	if voice_player:
+		voice_player.stop()
 	_dialogue_dismiss_enabled = false
 	clear_choices()
 	dialogue_panel.visible = false
@@ -149,6 +269,12 @@ func _wait_for_dismiss() -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if is_bargaining:
+		if event.is_action_pressed("ui_select") or event.is_action_pressed("ui_accept") or event.is_action_pressed("interact") or (event is InputEventKey and event.keycode == KEY_SPACE and event.pressed and not event.echo):
+			stop_bargain()
+			get_viewport().set_input_as_handled()
+		return
+
 	if _dialogue_dismiss_enabled and dialogue_panel.visible:
 		var should_dismiss := false
 		if event.is_action_pressed("interact"):
@@ -233,6 +359,7 @@ func _build_hud() -> void:
 	_stats_panel.add_child(stats)
 
 	money_label = _hud_label(21, Color(1.0, 0.83, 0.43))
+	time_label = _hud_label(18, Color(1.0, 0.65, 0.4))
 	map_label = _hud_label(16, Color(0.62, 0.95, 1.0))
 	cargo_label = _hud_label(16, Color(0.82, 1.0, 0.96))
 	reputation_label = _hud_label(16, Color(1.0, 0.55, 0.9))
@@ -240,6 +367,7 @@ func _build_hud() -> void:
 	mission_label = _hud_label(15, Color(1.0, 0.94, 0.8))
 	progress_label = _hud_label(15, Color(0.72, 1.0, 0.92))
 	stats.add_child(_hud_row(money_label, Color(1.0, 0.83, 0.43)))
+	stats.add_child(_hud_row(time_label, Color(1.0, 0.65, 0.4)))
 	stats.add_child(_hud_row(map_label, Color(0.62, 0.95, 1.0)))
 	stats.add_child(_hud_row(cargo_label, Color(0.82, 1.0, 0.96)))
 	stats.add_child(_hud_row(reputation_label, Color(1.0, 0.55, 0.9)))
@@ -588,8 +716,7 @@ func update_waypoints(targets: Array) -> void:
 		_waypoint_arrows.append(arrow)
 
 
-func _process(_delta: float) -> void:
-	_update_arrow_positions()
+
 
 
 func _update_arrow_positions() -> void:
@@ -717,3 +844,81 @@ func show_celebration(title: String, subtitle: String) -> void:
 	await _celebration_tween.finished
 	_celebration_panel.visible = false
 	_celebration_panel.scale = Vector2.ONE
+
+func _build_bargain_ui() -> void:
+	bargain_panel = PanelContainer.new()
+	bargain_panel.visible = false
+	bargain_panel.size = Vector2(400, 80)
+	bargain_panel.anchor_left = 0.5
+	bargain_panel.anchor_right = 0.5
+	bargain_panel.anchor_top = 0.5
+	bargain_panel.anchor_bottom = 0.5
+	bargain_panel.offset_left = -200
+	bargain_panel.offset_right = 200
+	bargain_panel.offset_top = -120
+	bargain_panel.offset_bottom = -40
+	
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.05, 0.05, 0.1, 0.95)
+	style.border_color = Color(1.0, 0.85, 0.3, 0.8)
+	style.border_width_left = 2
+	style.border_width_top = 2
+	style.border_width_right = 2
+	style.border_width_bottom = 2
+	style.corner_radius_top_left = 8
+	style.corner_radius_top_right = 8
+	style.corner_radius_bottom_left = 8
+	style.corner_radius_bottom_right = 8
+	bargain_panel.add_theme_stylebox_override("panel", style)
+	add_child(bargain_panel)
+	
+	var inner = Control.new()
+	bargain_panel.add_child(inner)
+	
+	var label = Label.new()
+	label.text = "Bấm SPACE hoặc E khi vạch nằm trong vùng XANH LÁ!"
+	label.position = Vector2(0, 10)
+	label.size = Vector2(400, 30)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 14)
+	label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+	inner.add_child(label)
+	
+	var bg = ColorRect.new()
+	bg.color = Color(0.2, 0.2, 0.2, 1.0)
+	bg.size = Vector2(360, 24)
+	bg.position = Vector2(20, 40)
+	inner.add_child(bg)
+	
+	bargain_target = ColorRect.new()
+	bargain_target.color = Color(0.1, 0.85, 0.2, 1.0)
+	bargain_target.size = Vector2(60, 24)
+	bargain_target.position = Vector2(120, 40)
+	inner.add_child(bargain_target)
+	
+	bargain_indicator = ColorRect.new()
+	bargain_indicator.color = Color(1.0, 0.9, 0.1, 1.0)
+	bargain_indicator.size = Vector2(8, 36)
+	bargain_indicator.position = Vector2(20, 34)
+	inner.add_child(bargain_indicator)
+
+func start_bargain(callback: Callable) -> void:
+	is_bargaining = true
+	bargain_callback = callback
+	bargain_panel.visible = true
+	bargain_indicator.position.x = 20
+	bargain_dir = 1.0
+	bargain_target.position.x = randf_range(60, 300)
+	bargain_target.size.x = randf_range(30, 70)
+	bargain_speed = randf_range(500, 800)
+
+func stop_bargain() -> void:
+	if not is_bargaining: return
+	is_bargaining = false
+	bargain_panel.visible = false
+	var ix = bargain_indicator.position.x + 4
+	var tx = bargain_target.position.x
+	var tw = bargain_target.size.x
+	var success = ix >= tx and ix <= tx + tw
+	if bargain_callback:
+		bargain_callback.call(success)

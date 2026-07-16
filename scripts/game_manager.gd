@@ -1,16 +1,23 @@
 extends Node2D
 
-const STARTING_MONEY: int = 650
+const STARTING_MONEY: int = 500
 const WORLD_SCALE: float = 1.6
 
 var money: int = STARTING_MONEY
 var reputation: int = 0
-var active_quest: int = 0
+var current_quest: Dictionary = {}
+var available_quests: Dictionary = {}
+var quest_cooldowns: Dictionary = {}
 var cargo: Dictionary = {}
 var discovered_spots: Dictionary = {}
 var engine_level: int = 1
 var current_map_id: String = "cai_rang"
 var quest_accepted: bool = false
+
+var game_time_minutes: float = 465.0 # Bắt đầu 7:45 AM
+var current_day: int = 1
+var is_time_running: bool = true
+
 
 var ui: CanvasLayer
 var player: CharacterBody2D
@@ -32,75 +39,93 @@ var _interact_groups: Dictionary = {
 	"upgrade_dock": "buy_engine_upgrade"
 }
 
-var quests: Array[Dictionary] = [
+var QUEST_TEMPLATES: Array[Dictionary] = [
 	{
-		"title": "Đơn hàng mở chợ",
-		"description": "Mua 3 giỏ trái cây ở Cái Răng và giao cho Tiệm Ánh Đèn.",
+		"title": "Nộp tiền học phí",
+		"description": "Lấy 500k đi mua 3 giỏ trái cây mang giao Tiệm Ánh Đèn (map Cái Răng) để kiếm lời đóng học cho em gái.",
 		"map": "cai_rang",
-		"giver": "cai_rang_dispatch",
 		"giver_name": "Trạm Điều Phối Ánh Đèn",
-		"dialogue": "Đêm nay khách đông, em gom giúp 3 giỏ trái cây rồi giao cho Tiệm Ánh Đèn. Đi chậm qua khúc nước đông để khỏi va bến.",
+		"dialogue": "Chào con, dạo này bé Hà học hành sao rồi? Sắp tới hạn nộp học phí 2 triệu phải không? Trạm đang có đơn gấp lấy 3 giỏ trái cây giao qua Tiệm Ánh Đèn, con làm đi lấy 400 ngàn tiền công nghen.",
 		"products": {"Trái cây": 3},
 		"delivery": "Tiệm Ánh Đèn",
-		"reward": 150,
+		"reward": 400,
+		"rep": 2
+	},
+	{
+		"title": "Giao hàng thiết yếu",
+		"description": "Giao 2 giỏ trái cây và 1 bánh dân gian cho Dãy Nhà Ven Sông.",
+		"map": "cai_rang",
+		"giver_name": "Trạm Điều Phối Ánh Đèn",
+		"dialogue": "Bà con ven sông đang cần đồ cúng rằm. Lấy 2 giỏ trái cây và 1 hộp bánh dân gian giao qua Dãy Nhà Ven Sông lẹ nha cháu. Trạm trả 350 ngàn cho chuyến này.",
+		"products": {"Trái cây": 2, "Bánh dân gian": 1},
+		"delivery": "Dãy Nhà Ven Sông",
+		"reward": 350,
 		"rep": 1
 	},
 	{
-		"title": "Tour đêm Bến Ninh Kiều",
-		"description": "Sang Bến Ninh Kiều và check-in 2 điểm sáng ven sông.",
-		"map": "ninh_kieu",
-		"giver": "ninh_kieu_pr",
-		"giver_name": "Quầy PR Du Lịch Đêm",
-		"dialogue": "Bến Ninh Kiều cần vài góc ảnh đẹp để quảng bá tour đêm. Ghé hai điểm sáng ven sông, chụp cho rõ bảng đèn và bến tàu.",
-		"spots": ["ninh_kieu_prom", "ninh_kieu_wharf"],
-		"reward": 120,
-		"rep": 2
+		"title": "Chuyến hàng thương hồ",
+		"description": "Giao 2 trái nước dừa qua Tiệm Ánh Đèn (map Cái Răng).",
+		"map": "cai_rang",
+		"giver_name": "Hội Thương Hồ",
+		"dialogue": "Hội đang thiếu người giao hàng gấp. Chở 2 trái nước dừa qua Tiệm Ánh Đèn giúp hội, hội trả 300 ngàn uống nước.",
+		"products": {"Nước dừa": 2},
+		"delivery": "Tiệm Ánh Đèn",
+		"reward": 300,
+		"rep": 1
 	},
 	{
-		"title": "Đặc sản cho du khách",
-		"description": "Ở Bến Ninh Kiều, chuẩn bị 2 nước dừa và 1 bánh dân gian cho Bến Du Lịch.",
+		"title": "Đơn thuốc cho em gái",
+		"description": "Bé Hà lại ốm. Giao 2 trái nước dừa qua Bến Du Lịch (map Ninh Kiều) lấy tiền công phụ tiền thuốc.",
 		"map": "ninh_kieu",
-		"giver": "ninh_kieu_tour",
 		"giver_name": "Bàn Điều Tour Ven Sông",
-		"dialogue": "Đoàn khách sắp xuống bến. Chuẩn bị nước dừa và bánh dân gian, ưu tiên mua ở sạp gần bến để giữ đồ còn tươi.",
-		"products": {"Nước dừa": 2, "Bánh dân gian": 1},
+		"dialogue": "Chú nghe nói bé Hà dạo này ho hoài, chú thương quá. Chú có mối ngon nè, con mua 2 trái nước dừa giao qua Bến Du Lịch ở Ninh Kiều đi, chú gởi 450 ngàn để mua thuốc cho em.",
+		"products": {"Nước dừa": 2},
 		"delivery": "Bến Du Lịch",
-		"reward": 240,
+		"reward": 450,
 		"rep": 2
 	},
 	{
-		"title": "Thu hoạch trong kênh vườn",
-		"description": "Đi Kênh Vườn Trái Cây, mua 4 trái cây và giao cho Nhà Vườn Chín Ngọt.",
+		"title": "Gom trái cây giúp dì Bảy",
+		"description": "Dì Bảy nhường mối sỉ. Giao 2 hộp bánh dân gian cho Nhà Vườn Chín Ngọt (map Vườn Trái Cây).",
 		"map": "orchard",
-		"giver": "orchard_coop",
 		"giver_name": "Hợp Tác Xã Nhà Vườn",
-		"dialogue": "Nhà vườn vừa hái xong mẻ trái cây mới. Lấy đủ 4 phần rồi giao về bến Chín Ngọt trước khi chuyến gom hàng rời kênh.",
-		"products": {"Trái cây": 4},
+		"dialogue": "HTX biết con đang kẹt tiền học cho bé, nay chú nhường lại mối sỉ này. Con chạy sang Kênh Vườn Trái Cây, giao 2 hộp bánh dân gian qua Nhà Vườn Chín Ngọt giùm chú nha. Xong chú trả 500 ngàn.",
+		"products": {"Bánh dân gian": 2},
 		"delivery": "Nhà Vườn Chín Ngọt",
-		"reward": 260,
-		"rep": 2
-	},
-	{
-		"title": "Ánh đèn làng nghề",
-		"description": "Ghé Làng Đèn Lồng và chụp 2 điểm trang trí cho chiến dịch PR.",
-		"map": "lantern",
-		"giver": "lantern_workshop",
-		"giver_name": "Xưởng Sáng Tạo Đèn Lồng",
-		"dialogue": "Làng đèn đang lên màu đẹp nhất. Chụp hai điểm trang trí để đội truyền thông dùng cho poster đêm hội.",
-		"spots": ["lantern_arch", "lantern_temple"],
-		"reward": 180,
+		"reward": 500,
 		"rep": 3
 	},
 	{
-		"title": "Đêm hội Cái Răng",
-		"description": "Gom 2 trái cây, 2 nước dừa, 2 bánh dân gian và giao cho Sân Khấu Nổi.",
-		"map": "lantern",
-		"giver": "festival_stage_office",
+		"title": "Chuyến hàng đêm (Thử thách)",
+		"description": "Quầy PR cần 3 trái nước dừa và 2 giỏ trái cây giao sang Bến Du Lịch (Ninh Kiều).",
+		"map": "ninh_kieu",
+		"giver_name": "Quầy PR Du Lịch Đêm",
+		"dialogue": "Đang có đơn gấp bên Bến Du Lịch Ninh Kiều để đón khách nước ngoài. Chở 3 trái dừa với 2 giỏ trái cây sang đó liền đi, tiền công tới 600 ngàn lận, ráng làm kiếm tiền học cho em nha!",
+		"products": {"Nước dừa": 3, "Trái cây": 2},
+		"delivery": "Bến Du Lịch",
+		"reward": 600,
+		"rep": 4
+	},
+	{
+		"title": "Nguồn sáng Làng Đèn",
+		"description": "Giao 3 giỏ trái cây cho Đền Lồng Khổng Lồ (Làng Đèn).",
+		"map": "lantern_village",
+		"giver_name": "Xưởng Sáng Tạo Đèn Lồng",
+		"dialogue": "Lễ hội sắp tới, thợ làm lồng đèn đang đói bụng. Chở 3 giỏ trái cây ngon qua Đền Lồng Khổng Lồ cho anh em. Tiền công 550 ngàn nhé!",
+		"products": {"Trái cây": 3},
+		"delivery": "Đền Lồng Khổng Lồ",
+		"reward": 550,
+		"rep": 3
+	},
+	{
+		"title": "Phục vụ Đêm Hội",
+		"description": "Giao 2 bánh dân gian và 2 giỏ trái cây cho Sân Khấu Thủy Đình.",
+		"map": "lantern_village",
 		"giver_name": "Ban Tổ Chức Đêm Hội",
-		"dialogue": "Đây là chuyến cuối: gom đủ quà miền Tây cho sân khấu nổi. Nếu làm gọn, cả khu chợ sẽ sáng đèn đúng giờ.",
-		"products": {"Trái cây": 2, "Nước dừa": 2, "Bánh dân gian": 2},
-		"delivery": "Sân Khấu Nổi",
-		"reward": 420,
+		"dialogue": "Đêm hội thiếu đồ cúng và bánh cho khách VIP. Đi gom liền 2 giỏ trái cây và 2 bánh dân gian giao tới Sân Khấu Thủy Đình. Trả công 700 ngàn, đi lẹ lên con!",
+		"products": {"Bánh dân gian": 2, "Trái cây": 2},
+		"delivery": "Sân Khấu Thủy Đình",
+		"reward": 700,
 		"rep": 4
 	}
 ]
@@ -116,9 +141,21 @@ func _ready() -> void:
 	_build_maps()
 	_configure_world()
 	_apply_map("cai_rang", Vector2(960, 760))
+	_spawn_initial_quests()
 	_refresh_ui()
-	ui.show_map_banner(str(_current_map()["name"]), "Tìm điểm nhận nhiệm vụ để bắt đầu hợp đồng đầu tiên.")
+	_intro_sequence()
 
+
+
+func _intro_sequence() -> void:
+	player.input_blocked = true
+	var narrator_text = "Từ bận tía má đi mãi không về, gánh nặng gia đình đổ dồn lên vai hai anh em mồ côi. Giữa chợ nổi mênh mông bọt bèo, người anh quyết không để tương lai của bé Hà phải chìm lấp trong cái chữ mờ phai. Hôm nay lại đến hạn, phải ráng gom bằng được 2 triệu tiền học cho em!"
+	
+	ui.play_intro_cutscene(narrator_text, func():
+		player.input_blocked = false
+		ui.flash_prompt("Mục tiêu: Kiếm đủ 2 triệu VNĐ trong 7 ngày!")
+		SceneTransition.play_music(SceneTransition.bgm_game)
+	)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if player.input_blocked or ui.dialogue_panel.visible:
@@ -146,6 +183,25 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _process(delta: float) -> void:
+	if is_time_running:
+		game_time_minutes += delta * 15.0
+		if game_time_minutes >= 1440.0:
+			game_time_minutes -= 1440.0
+			current_day += 1
+		var h: int = int(game_time_minutes) / 60
+		var m: int = int(game_time_minutes) % 60
+		if ui != null and ui.has_method("update_time_ui"):
+			ui.update_time_ui(current_day, h, m)
+			
+		_process_quest_cooldowns(delta)
+		
+		if money >= 2000000 / 1000: # 2 million VND
+			_st.call("change_scene", "res://scenes/WinScreen.tscn")
+			is_time_running = false
+		elif current_day > 7:
+			_st.call("change_scene", "res://scenes/BadEnding.tscn")
+			is_time_running = false
+
 	if _hold_target != null and is_instance_valid(_hold_target):
 		if not bool(_hold_target.get("player_near")):
 			_hold_target = null
@@ -221,23 +277,33 @@ func change_map(map_id: String, spawn_position: Vector2) -> void:
 	
 	_apply_currents(_current_map().get("currents", []) as Array)
 
-func accept_quest(board: Area2D) -> void:
-	var quest: Dictionary = _active_quest()
-	var board_id: String = str(board.get("board_id"))
+func accept_quest(giver_node: Area2D) -> void:
+	var giver_name: String = str(giver_node.get("merchant_name")) if giver_node.get("merchant_name") else ""
+	if giver_name == "" and giver_node.get("board_name"):
+		giver_name = str(giver_node.get("board_name"))
+	
 	if quest_accepted:
 		_st.call("play_fail_sfx")
 		ui.flash_prompt("Bạn đang theo hợp đồng hiện tại")
 		return
-	if quest.get("giver", "") != board_id:
+		
+	if not available_quests.has(giver_name):
 		_st.call("play_fail_sfx")
-		ui.flash_prompt("Hợp đồng hiện tại không nhận ở đây")
+		ui.flash_prompt("NPC này hiện chưa có nhiệm vụ")
 		return
+		
+	current_quest = available_quests[giver_name].duplicate()
+	available_quests.erase(giver_name)
 	quest_accepted = true
-	board.call("accept_feedback")
+	
+	if giver_node.has_method("accept_feedback"):
+		giver_node.call("accept_feedback")
+	elif giver_node.has_method("purchase_feedback"):
+		giver_node.call("purchase_feedback")
 	_st.call("play_success_sfx")
 	player.shake(0.15, 3.0)
-	ui.show_map_banner(str(_current_map()["name"]), "Đã nhận: %s" % quest["title"])
-	ui.show_dialogue(str(quest["giver_name"]), str(quest.get("dialogue", "Nhận hợp đồng rồi nhé, đi đúng tuyến và quay lại khi hoàn tất.")))
+	ui.show_map_banner(str(_current_map()["name"]), "Đã nhận: %s" % current_quest["title"])
+	ui.show_dialogue(str(current_quest.get("giver_name", "Nhiệm vụ")), str(current_quest.get("dialogue", "Nhận đơn hàng mới.")), true)
 	_refresh_ui()
 
 
@@ -347,44 +413,43 @@ func _execute_purchase(merchant: Area2D, final_price: int) -> void:
 
 func _negotiate_bargain(merchant: Area2D, original_price: int, bargain_price: int) -> void:
 	var merchant_name: String = str(merchant.get("merchant_name"))
+	ui.hide_dialogue()
 	
-	var base_chance := 0.5
-	var total_chance := base_chance + (reputation * 0.08)
-	var is_success := randf() < total_chance
-	
-	if is_success:
-		var success_msg := "Thôi coi như bán mở hàng lấy thảo, cô bớt cho con còn %dk đó. Lấy nghen?" % bargain_price
-		ui.show_dialogue(merchant_name, success_msg, false)
-		
-		var choices: Array = []
-		choices.append({
-			"text": "Dạ chốt mua! (%dk)" % bargain_price,
-			"callback": func():
-				_execute_purchase(merchant, bargain_price)
-		})
-		choices.append({
-			"text": "Thôi con không mua nữa",
-			"callback": func():
-				_cancel_purchase_with_sulk(merchant)
-		})
-		ui.show_choices(choices)
-	else:
-		_st.call("play_fail_sfx")
-		var fail_msg := "Trời ơi bớt dữ vậy con! Hàng ngon vậy bán giá đó cô lỗ chết. Đúng %dk cô mới bán được nà." % original_price
-		ui.show_dialogue(merchant_name, fail_msg, false)
-		
-		var choices: Array = []
-		choices.append({
-			"text": "Dạ thôi con mua đúng giá (%dk)" % original_price,
-			"callback": func():
-				_execute_purchase(merchant, original_price)
-		})
-		choices.append({
-			"text": "Thôi vậy con không mua nữa",
-			"callback": func():
-				_cancel_purchase_with_sulk(merchant)
-		})
-		ui.show_choices(choices)
+	ui.start_bargain(func(success: bool):
+		if success:
+			var success_msg := "Thôi coi như bán mở hàng lấy thảo, cô bớt cho con còn %dk đó. Lấy nghen?" % bargain_price
+			ui.show_dialogue(merchant_name, success_msg, false)
+			
+			var choices: Array = []
+			choices.append({
+				"text": "Dạ chốt mua! (%dk)" % bargain_price,
+				"callback": func():
+					_execute_purchase(merchant, bargain_price)
+			})
+			choices.append({
+				"text": "Thôi con không mua nữa",
+				"callback": func():
+					_cancel_purchase_with_sulk(merchant)
+			})
+			ui.show_choices(choices)
+		else:
+			_st.call("play_fail_sfx")
+			var fail_msg := "Trời ơi bớt dữ vậy con! Hàng ngon vậy bán giá đó cô lỗ chết. Đúng %dk cô mới bán được nè." % original_price
+			ui.show_dialogue(merchant_name, fail_msg, false)
+			
+			var choices: Array = []
+			choices.append({
+				"text": "Dạ thôi con mua đúng giá (%dk)" % original_price,
+				"callback": func():
+					_execute_purchase(merchant, original_price)
+			})
+			choices.append({
+				"text": "Thôi vậy con không mua nữa",
+				"callback": func():
+					_cancel_purchase_with_sulk(merchant)
+			})
+			ui.show_choices(choices)
+	)
 
 
 func _cancel_purchase_polite(merchant_name: String) -> void:
@@ -528,17 +593,20 @@ func hide_prompt() -> void:
 
 func _advance_quest() -> void:
 	var quest := _active_quest()
-	active_quest += 1
 	quest_accepted = false
-	if active_quest >= quests.size():
-		_st.call("change_scene", "res://scenes/WinScreen.tscn")
-		return
+	
+	# Start cooldown for the giver
+	var giver = quest.get("giver_name", "")
+	if giver != "":
+		# Cooldown of 4 to 8 in-game hours
+		quest_cooldowns[giver] = randf_range(240, 480)
+		
 	ui.show_celebration("Hoàn thành nhiệm vụ!", quest["title"])
 	_refresh_ui()
 
 
 func _active_quest() -> Dictionary:
-	return quests[min(active_quest, quests.size() - 1)] as Dictionary
+	return current_quest
 
 
 func _current_map() -> Dictionary:
@@ -578,10 +646,12 @@ func _count_quest_spots(quest: Dictionary) -> int:
 
 
 func _quest_progress_text() -> String:
-	var quest: Dictionary = _active_quest()
-	var map_name: String = str(maps[str(quest["map"])]["name"])
 	if not quest_accepted:
-		return "Đến %s nhận nhiệm vụ tại %s" % [map_name, quest["giver_name"]]
+		return "[Chưa nhận] Khám phá chợ nổi hoặc xem các cổng sông để tìm hợp đồng."
+		
+	var quest: Dictionary = current_quest
+	var map_name: String = str(maps[str(quest.get("map", "cai_rang"))]["name"])
+	
 	if quest.has("spots"):
 		var spot_ids: Array = quest["spots"] as Array
 		return "%s | Check-in %d/%d" % [map_name, _count_quest_spots(quest), spot_ids.size()]
@@ -590,7 +660,7 @@ func _quest_progress_text() -> String:
 		var parts: PackedStringArray = PackedStringArray()
 		for product in products.keys():
 			parts.append("%s %d/%d" % [product, get_cargo_count(str(product)), int(products[product])])
-		return "%s | %s | Giao: %s" % [map_name, " | ".join(parts), quest["delivery"]]
+		return "%s | %s | Giao: %s" % [map_name, " | ".join(parts), quest.get("delivery", "")]
 	return map_name
 
 
@@ -605,8 +675,10 @@ func _cargo_text() -> String:
 func _refresh_ui() -> void:
 	var quest: Dictionary = _active_quest()
 	ui.update_stats(money, _cargo_text(), reputation, engine_level, str(_current_map()["name"]))
-	var state: String = "Đang làm" if quest_accepted else "Chưa nhận"
-	ui.set_mission("[%s] %s: %s" % [state, quest["title"], quest["description"]])
+	if quest_accepted:
+		ui.set_mission("[Đang làm] %s: %s" % [quest.get("title", ""), quest.get("description", "")])
+	else:
+		ui.set_mission("[Chưa nhận] Khám phá chợ nổi, tìm NPC có dấu (!) để nhận việc.")
 	ui.set_progress(_quest_progress_text())
 	player.sync_cargo_visuals(cargo)
 	_update_waypoints()
@@ -780,11 +852,9 @@ func _update_waypoints() -> void:
 	if not quest_accepted:
 		for board_node in get_tree().get_nodes_in_group("quest_hub"):
 			if is_instance_valid(board_node) and board_node.visible:
-				var board_id: String = str(board_node.get("board_id"))
-				var board_name: String = str(board_node.get("board_name"))
-				if board_id == quest.get("giver", ""):
-					targets.append({"node": board_node, "color": Color(0.2, 0.9, 0.6), "label": board_name})
-					break
+				var giver_name = str(board_node.get("merchant_name")) if board_node.get("merchant_name") else str(board_node.get("board_name"))
+				if available_quests.has(giver_name):
+					targets.append({"node": board_node, "color": Color(0.2, 0.9, 0.6), "label": "Nhận hợp đồng"})
 	elif quest.has("spots") and on_quest_map:
 		var spot_ids: Array = quest["spots"] as Array
 		for spot_node in get_tree().get_nodes_in_group("scenic_spot"):
@@ -830,12 +900,25 @@ func _get_remaining_products(quest: Dictionary) -> Dictionary:
 
 
 func _map_tip() -> String:
-	var quest: Dictionary = _active_quest()
-	if quest.get("map", "") == current_map_id:
-		if quest_accepted:
-			return "Hợp đồng hiện tại đang diễn ra ở khu vực này."
-		return "Tìm %s để nhận hợp đồng." % quest["giver_name"]
-	return "Dùng cổng sông để đến khu vực của hợp đồng hiện tại."
+	if quest_accepted:
+		var quest: Dictionary = current_quest
+		if quest.get("map", "") == current_map_id:
+			return "%s | Giao: %s" % [quest["products"].keys()[0], quest["delivery"]]
+		else:
+			return "Đi đến %s để giao hàng." % maps.get(str(quest["map"]), {"name": "bản đồ khác"}).get("name", "bản đồ khác")
+	else:
+		var maps_with_quests = []
+		for giver in available_quests.keys():
+			var m = str(available_quests[giver].get("map", ""))
+			if m != "" and maps.has(m):
+				var m_name = maps[m]["name"]
+				if not maps_with_quests.has(m_name):
+					maps_with_quests.append(m_name)
+		
+		if maps_with_quests.size() > 0:
+			return "Có hợp đồng chờ ở: " + ", ".join(maps_with_quests)
+		else:
+			return "Đang rảnh rỗi. Hãy nghỉ ngơi chút!"
 
 
 func _build_maps() -> void:
@@ -866,7 +949,8 @@ func _build_maps() -> void:
 				])
 			],
 			"quest_boards": [
-				{"pos": Vector2(300, 700), "id": "cai_rang_dispatch", "name": "Trạm Điều Phối Ánh Đèn", "role": "Hợp đồng mở chợ", "boat_offset": Vector2(-18, 10), "npc_offset": Vector2(-20, 20), "marker_offset": Vector2(70, -86), "label_offset": Vector2(-170, -174)}
+				{"pos": Vector2(300, 700), "id": "cai_rang_dispatch", "name": "Trạm Điều Phối Ánh Đèn", "role": "Hợp đồng mở chờ", "boat_offset": Vector2(-18, 10), "npc_offset": Vector2(-20, 20), "marker_offset": Vector2(70, -86), "label_offset": Vector2(-170, -174)},
+				{"pos": Vector2(1300, 800), "id": "cai_rang_tour", "name": "Hội Thương Hồ", "role": "Chở thuê", "boat_offset": Vector2(-18, 10), "npc_offset": Vector2(-20, 20)}
 			],
 			"decorations": [
 				{"kind": "lantern", "pos": Vector2(318, 610), "phase": 0.2},
@@ -881,7 +965,7 @@ func _build_maps() -> void:
 			],
 			"deliveries": [
 				{"pos": Vector2(1400, 750), "name": "Tiệm Ánh Đèn"},
-				{"pos": Vector2(350, 250), "name": "Bến Du Lịch"},
+				{"pos": Vector2(350, 250), "name": "Dãy Nhà Ven Sông"},
 				{"pos": Vector2(1260, 650), "name": "Sân Khấu Nổi", "marker_offset": Vector2(250, -278), "npc_offset": Vector2(302, -294), "label_offset": Vector2(220, -378)}
 			],
 			"spots": [
@@ -995,8 +1079,8 @@ func _build_maps() -> void:
 				{"pos": Vector2(600, 750), "rot": 0.14, "name": "Tiệm Bánh Làng Nghề", "product": "Bánh dân gian", "price": 88, "stock": 8}
 			],
 			"deliveries": [
-				{"pos": Vector2(1350, 700), "name": "Sân Khấu Nổi"},
-				{"pos": Vector2(330, 190), "name": "Xưởng Đèn Lồng"}
+				{"pos": Vector2(1350, 700), "name": "Sân Khấu Thủy Đình"},
+				{"pos": Vector2(330, 190), "name": "Đền Lồng Khổng Lồ"}
 			],
 			"spots": [
 				{"pos": Vector2(960, 210), "id": "lantern_arch", "name": "Cổng Đèn Lồng"},
@@ -1012,3 +1096,28 @@ func _build_maps() -> void:
 			"upgrade_dock": {"pos": Vector2(1665, 220)}
 		}
 	}
+
+func _spawn_initial_quests() -> void:
+	for t in QUEST_TEMPLATES:
+		if not available_quests.has(t["giver_name"]):
+			available_quests[t["giver_name"]] = t.duplicate()
+
+func _process_quest_cooldowns(delta: float) -> void:
+	# Convert delta to game minutes
+	var elapsed_mins = delta * 15.0
+	var keys_to_remove = []
+	for giver in quest_cooldowns.keys():
+		quest_cooldowns[giver] -= elapsed_mins
+		if quest_cooldowns[giver] <= 0:
+			keys_to_remove.append(giver)
+	
+	for giver in keys_to_remove:
+		quest_cooldowns.erase(giver)
+		# Spawn a new random quest for this giver
+		var templates = []
+		for t in QUEST_TEMPLATES:
+			if t["giver_name"] == giver:
+				templates.append(t)
+		if templates.size() > 0:
+			var idx = randi() % templates.size()
+			available_quests[giver] = templates[idx].duplicate()

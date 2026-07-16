@@ -19,8 +19,6 @@ func _ready() -> void:
 	npc_base_position = npc.position
 	_create_nameplate()
 	_update_nameplate()
-	input_pickable = true
-	input_event.connect(_on_input_event)
 	bob_phase = randf_range(0, TAU)
 
 
@@ -127,13 +125,3 @@ func _on_body_exited(body: Node2D) -> void:
 		get_tree().current_scene.hide_prompt()
 
 
-func _on_input_event(viewport: Node, event: InputEvent, shape_idx: int) -> void:
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		var scene = get_tree().current_scene
-		if scene.player != null and not scene.player.input_blocked:
-			var dist: float = global_position.distance_to(scene.player.global_position)
-			if dist <= 680.0:
-				scene.complete_delivery(self)
-				get_viewport().set_input_as_handled()
-			else:
-				scene.ui.flash_prompt("Lái ghe lại gần hơn để giao hàng")

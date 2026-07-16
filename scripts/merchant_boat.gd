@@ -18,10 +18,25 @@ func _ready() -> void:
 	body_exited.connect(_on_body_exited)
 	fruit_icon.modulate = Color(1, 1, 1, 0.0)
 	_create_nameplate()
+	_create_exclamation()
 	_update_nameplate()
-	input_pickable = true
-	input_event.connect(_on_input_event)
 	bob_phase = randf_range(0, TAU)
+
+var exclamation_label: Label
+
+func _create_exclamation() -> void:
+	exclamation_label = Label.new()
+	exclamation_label.text = "!"
+	exclamation_label.position = Vector2(-20, -180)
+	exclamation_label.size = Vector2(40, 40)
+	exclamation_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	exclamation_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	exclamation_label.add_theme_font_size_override("font_size", 48)
+	exclamation_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2))
+	exclamation_label.add_theme_color_override("font_outline_color", Color(1.0, 1.0, 0.8))
+	exclamation_label.add_theme_constant_override("outline_size", 5)
+	exclamation_label.visible = false
+	add_child(exclamation_label)
 
 
 func _process(delta: float) -> void:
@@ -37,6 +52,15 @@ func _process(delta: float) -> void:
 		var p = get_tree().current_scene.player
 		if p:
 			sprite.flip_h = global_position.x > p.global_position.x
+	
+	if exclamation_label != null:
+		var scene = get_tree().current_scene
+		if "available_quests" in scene and scene.available_quests.has(merchant_name) and not scene.quest_accepted:
+			exclamation_label.visible = true
+			exclamation_label.position.y = -180 + sin(bob_phase * 2.0) * 8.0
+		else:
+			exclamation_label.visible = false
+			
 	_update_nameplate()
 	queue_redraw()
 
@@ -69,7 +93,7 @@ func _update_prompt() -> void:
 	if stock <= 0:
 		get_tree().current_scene.show_prompt("%s đã hết hàng" % merchant_name)
 	else:
-		get_tree().current_scene.show_prompt("Giữ E hỏi mua %s (%s còn %d)" % [product_name, merchant_name, stock])
+		get_tree().current_scene.show_prompt("Giữ E hỏi mua %s (Kho: %d)" % [product_name, stock])
 
 
 func _create_nameplate() -> void:
@@ -117,15 +141,3 @@ func _on_body_exited(body: Node2D) -> void:
 	if body.is_in_group("player"):
 		player_near = false
 		get_tree().current_scene.hide_prompt()
-
-
-func _on_input_event(viewport: Node, event: InputEvent, shape_idx: int) -> void:
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		var scene = get_tree().current_scene
-		if scene.player != null and not scene.player.input_blocked:
-			var dist: float = global_position.distance_to(scene.player.global_position)
-			if dist <= 680.0:
-				scene.buy_from_merchant(self)
-				get_viewport().set_input_as_handled()
-			else:
-				scene.ui.flash_prompt("Lái ghe lại gần hơn để hỏi mua hàng")

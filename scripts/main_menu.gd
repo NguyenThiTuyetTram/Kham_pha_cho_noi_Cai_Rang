@@ -2,6 +2,7 @@ extends Control
 
 @export var is_how_to_play := false
 @export var is_win_screen := false
+@export var is_bad_ending := false
 
 const GAME_SCENE := "res://scenes/Game.tscn"
 const HOW_TO_PLAY_SCENE := "res://scenes/HowToPlay.tscn"
@@ -26,7 +27,7 @@ func _build_screen() -> void:
 	add_child(shade)
 
 	var panel := PanelContainer.new()
-	var panel_height := 360 if is_how_to_play or is_win_screen else 430
+	var panel_height := 360 if (is_how_to_play or is_win_screen or is_bad_ending) else 430
 	panel.custom_minimum_size = Vector2(620, panel_height)
 	panel.set_anchors_preset(Control.PRESET_CENTER)
 	panel.offset_left = -310
@@ -61,7 +62,10 @@ func _build_screen() -> void:
 	title.add_theme_font_size_override("font_size", 40 if not is_how_to_play else 44)
 	title.add_theme_color_override("font_color", Color(1.0, 0.82, 0.42))
 	if is_win_screen:
-		title.text = "Hoàn thành chuyến giao hàng!"
+		title.text = "Happy Ending!"
+	elif is_bad_ending:
+		title.text = "Game Over"
+		title.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4))
 	elif is_how_to_play:
 		title.text = "Hướng Dẫn"
 	else:
@@ -70,7 +74,7 @@ func _build_screen() -> void:
 
 	if is_win_screen:
 		var summary := Label.new()
-		summary.text = "Bạn đã đi qua Cái Răng, Bến Ninh Kiều, Kênh Vườn Trái Cây và Làng Đèn Lồng để hoàn thành đêm hội."
+		summary.text = "Bạn đã chăm chỉ chạy ghe khắp các bến sông và kiếm đủ 2 triệu! Bé Hà sẽ được tiếp tục đến trường."
 		summary.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		summary.add_theme_font_size_override("font_size", 24)
@@ -78,6 +82,17 @@ func _build_screen() -> void:
 		summary.custom_minimum_size = Vector2(540, 90)
 		box.add_child(summary)
 		box.add_child(_make_button("Chơi lại", _play))
+		box.add_child(_make_button("Menu chính", _go_main_menu))
+	elif is_bad_ending:
+		var summary := Label.new()
+		summary.text = "Đã qua 7 ngày nhưng bạn không gom đủ 2 triệu. Bé Hà đành phải nghỉ học..."
+		summary.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		summary.add_theme_font_size_override("font_size", 24)
+		summary.add_theme_color_override("font_color", Color(1.0, 0.6, 0.6))
+		summary.custom_minimum_size = Vector2(540, 90)
+		box.add_child(summary)
+		box.add_child(_make_button("Thử lại", _play))
 		box.add_child(_make_button("Menu chính", _go_main_menu))
 	elif is_how_to_play:
 		var instructions := Label.new()
